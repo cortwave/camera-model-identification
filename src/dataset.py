@@ -21,11 +21,12 @@ class Dataset(data.Dataset):
         else:
             df = valid_fold
         categories = sorted(os.listdir('../data/train'))
-        categories_dict = { k: idx for k, idx in enumerate(categories)}
+        categories_dict = {k: idx for idx, k in enumerate(categories)}
         self.images = df[0].values
         labels = df[1].values
         self.labels = [categories_dict[cat] for cat in labels]
         self.transform = transform
+        self.num_classes = len(categories)
 
     def __len__(self):
         return self.images.size
