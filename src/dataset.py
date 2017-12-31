@@ -12,14 +12,16 @@ def load(image):
 
 class Dataset(data.Dataset):
     def __init__(self, n_fold, n_folds, transform=None, train=True):
-        valid_fold = pd.read_csv('../data/fold_{}.csv'.format(n_fold), header=None)
         if train:
             folds = list(range(n_folds))
             folds.remove(n_fold)
             train_dfs = [pd.read_csv('../data/fold_{}.csv'.format(i), header=None) for i in folds]
             df = pd.concat(train_dfs)
+            df = pd.concat([df for _ in range(15)])
         else:
+            valid_fold = pd.read_csv('../data/fold_{}.csv'.format(n_fold), header=None)
             df = valid_fold
+            df = pd.concat([df for _ in range(25)])
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}
         self.images = df[0].values
@@ -43,6 +45,10 @@ class TestDataset(data.Dataset):
     def __init__(self, transform=None):
         self.images = sorted(glob.glob('../data/test/**'))
         self.transform = transform
+        categories = sorted(os.listdir('../data/train'))
+        categories_dict = {idx: k for idx, k in enumerate(categories)}
+        self.num_classes = len(categories)
+        self.inverse_dict = categories_dict
 
     def __len__(self):
         return len(self.images)
