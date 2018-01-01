@@ -1,13 +1,16 @@
 import torch.utils.data as data
 import pandas as pd
-from PIL import Image
+from skimage.io import imread
 import os
 import glob
 
 
 def load(image):
-    img = Image.open(image)
-    return img
+    img = imread(image)
+    if img.shape == (2,):
+        return img[0]
+    else:
+        return img
 
 
 class Dataset(data.Dataset):

@@ -1,4 +1,4 @@
-from torchvision.models import squeezenet1_1, resnet152, resnet34, resnet50, resnet101, densenet121, densenet161, densenet169, densenet201
+from torchvision.models import squeezenet1_1, resnet152, resnet34, resnet50, resnet101, densenet121, densenet161, densenet169, densenet201, resnet18
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
 from torch.nn.functional import softmax
@@ -22,7 +22,9 @@ def get_model(num_classes, architecture):
         if architecture == 'seresnet152':
             model = se_resnet152(num_classes).cuda()
     elif "resnet" in architecture:
-        if architecture == 'resnet34':
+        if architecture == 'resnet18':
+            model = resnet18(pretrained=True).cuda()
+        elif architecture == 'resnet34':
             model = resnet34(pretrained=True).cuda()
         elif architecture == 'resnet50':
             model = resnet50(pretrained=True).cuda()
