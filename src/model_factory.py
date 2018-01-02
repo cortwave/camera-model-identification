@@ -1,4 +1,4 @@
-from torchvision.models import squeezenet1_1, resnet152, resnet34, resnet50, resnet101, densenet121, densenet161, densenet169, densenet201, resnet18
+from torchvision.models import inception_v3, squeezenet1_1, resnet152, resnet34, resnet50, resnet101, densenet121, densenet161, densenet169, densenet201, resnet18
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
 from torch.nn.functional import softmax
@@ -62,7 +62,7 @@ def get_model(num_classes, architecture):
         if architecture == "dpn68":
             model = dpn_factory.create_model(architecture,
                                                num_classes=1000,
-                                               pretrained=True,
+                                               pretrained=False,
                                                test_time_pool=False)
             model.classifier = nn.Conv2d(model.in_chs, num_classes, kernel_size=1, bias=True)
     if model is None:

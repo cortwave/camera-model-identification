@@ -11,7 +11,7 @@ import torch
 from datetime import datetime
 import shutil
 import json
-from transforms import train_augm, valid_augm
+from transforms import train_augm, valid_augm, test_augm
 from pt_util import variable, long_tensor
 from metrics import accuracy
 from fire import Fire
@@ -206,24 +206,40 @@ class Model(object):
         self.log.write('\n')
         self.log.flush()
 
-    def predict(self, architecture, fold, name="sub"):
-        test_augm = valid_augm()
-        test_dataset = TestDataset(transform=test_augm)
+    def predict(self, architecture, fold, tta=5, mode='submit', name="sub"):
+        test_dataset = TestDataset(transform=test_augm())
         model = get_model(num_classes=test_dataset.num_classes, architecture=architecture)
         state = torch.load('../results/{}/best-model_{}.pt'.format(architecture, fold))
         model.load_state_dict(state['model'])
         model.eval()
-        with open('../results/{}/{}_{}.csv'.format(architecture, name, fold), "w") as f:
-            f.write("fname,camera\n")
-            for idx in tqdm.tqdm(range(len(test_dataset))):
-                images = torch.stack([test_dataset[idx][0]])
-                images = variable(images)
-                pred = model(images).data.cpu().numpy()
-                pred = pred[0]
-                fname = test_dataset[idx][1]
-                label = np.argmax(pred, 0)
-                camera_model = test_dataset.inverse_dict[label]
-                f.write('{},{}\n'.format(fname, camera_model))
+        if mode == 'submit':
+            with open('../results/{}/{}_{}.csv'.format(architecture, name, fold), "w") as f:
+                f.write("fname,camera\n")
+                for idx in tqdm.tqdm(range(len(test_dataset))):
+                    images = torch.stack([test_dataset[idx][0]])
+                    images = variable(images)
+                    pred = model(images).data.cpu().numpy()
+                    pred = pred[0]
+                    fname = test_dataset[idx][1]
+                    label = np.argmax(pred, 0)
+                    camera_model = test_dataset.inverse_dict[label]
+                    f.write('{},{}\n'.format(fname, camera_model))
+        else:
+            def softmax(x):
+                """Compute softmax values for each sets of scores in x."""
+                e_x = np.exp(x - np.max(x))
+                return e_x / e_x.sum(axis=0)
+
+            with open('../results/{}/{}_{}_prob.csv'.format(architecture, name, fold), "w") as f:
+                for idx in tqdm.tqdm(range(len(test_dataset))):
+                    images = torch.stack([test_dataset[idx][0] for _ in range(tta)])
+                    images = variable(images)
+                    pred = model(images).data.cpu().numpy()
+                    pred = np.array([softmax(x) for x in pred])
+                    pred = np.sum(pred, axis=0) / len(pred)
+                    fname = test_dataset[idx][1]
+                    probas = ','.join([str(x) for x in pred])
+                    f.write('{},{}\n'.format(fname, probas))
 
 
 if __name__ == '__main__':
