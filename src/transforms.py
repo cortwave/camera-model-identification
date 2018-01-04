@@ -39,7 +39,7 @@ class RandomJPG:
 
     def __call__(self, img):
         if np.random.random() < 0.5:
-            quality = np.random.choice(self.quality)
+            quality = int(np.random.choice(self.quality))
             out = BytesIO()
             i = Image.fromarray(img)
             i.save(out, format='jpeg', quality=quality)
