@@ -7,10 +7,12 @@ import numpy as np
 
 def crop_and_flip():
     return transforms.Compose([
-        RandomJPG([70, 90]),
-        RandomResize([0.5, 0.8, 1.5, 2.0], 0.25),
-        RandomGamma([0.8, 1.2], 0.25),
-        RandomHFlip(),
+        RandomOrder([
+            RandomJPG([70, 90], 0.25),
+            RandomResize([0.5, 0.8, 1.5, 2.0], 0.25),
+            RandomGamma([0.8, 1.2], 0.25),
+            RandomHFlip()
+        ]),
         RandomCrop(512),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -33,20 +35,30 @@ def test_augm():
     ])
 
 
-class RandomJPG:
-    def __init__(self, quality):
-        self.quality = quality
+class RandomOrder:
+    def __init__(self, transforms):
+        self.transforms = transforms
 
     def __call__(self, img):
-        if np.random.random() < 0.5:
+        indexes = np.random.permutation(len(self.transforms))
+        for idx in indexes:
+            img = self.transforms[idx](img)
+        return img
+
+
+class RandomJPG:
+    def __init__(self, quality, prob):
+        self.quality = quality
+        self.prob = prob
+
+    def __call__(self, img):
+        if np.random.random() < self.prob:
             quality = int(np.random.choice(self.quality))
             out = BytesIO()
             i = Image.fromarray(img)
             i.save(out, format='jpeg', quality=quality)
             out.seek(0)
             byte_img = out.read()
-
-            # Non test code
             data_bytes_io = BytesIO(byte_img)
             img = np.array(Image.open(data_bytes_io))
         return img
