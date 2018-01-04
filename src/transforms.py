@@ -1,10 +1,13 @@
 from torchvision import transforms
+from io import BytesIO
+from PIL import Image
 import cv2
 import numpy as np
 
 
 def crop_and_flip():
     return transforms.Compose([
+        RandomJPG([70, 90]),
         RandomResize([0.5, 0.8, 1.5, 2.0], 0.25),
         RandomGamma([0.8, 1.2], 0.25),
         RandomHFlip(),
@@ -30,7 +33,26 @@ def test_augm():
     ])
 
 
-class RandomCrop():
+class RandomJPG:
+    def __init__(self, quality):
+        self.quality = quality
+
+    def __call__(self, img):
+        if np.random.random() < 0.5:
+            quality = np.random.choice(self.quality)
+            out = BytesIO()
+            i = Image.fromarray(img)
+            i.save(out, format='jpeg', quality=quality)
+            out.seek(0)
+            byte_img = out.read()
+
+            # Non test code
+            data_bytes_io = BytesIO(byte_img)
+            img = np.array(Image.open(data_bytes_io))
+        return img
+
+
+class RandomCrop:
     def __init__(self, size):
         self.size = size
 
@@ -44,7 +66,7 @@ class RandomCrop():
         return img[x:x + self.size, y:y + self.size, :]
 
 
-class RandomHFlip():
+class RandomHFlip:
     def __init__(self):
         pass
 
@@ -54,7 +76,7 @@ class RandomHFlip():
         return img
 
 
-class RandomResize():
+class RandomResize:
     def __init__(self, coeffs, prob):
         self.coeffs = coeffs
         self.prob = prob
@@ -68,7 +90,7 @@ class RandomResize():
             return img
 
 
-class RandomGamma():
+class RandomGamma:
     def __init__(self, coeffs, prob):
         self.coeffs = coeffs
         self.prob = prob
@@ -84,8 +106,8 @@ class RandomGamma():
     def _adjust_gamma(image, gamma=1.0):
         # build a lookup table mapping the pixel values [0, 255] to
         # their adjusted gamma values
-        invGamma = 1.0 / gamma
-        table = np.array([((i / 255.0) ** invGamma) * 255
+        inv_gamma = 1.0 / gamma
+        table = np.array([((i / 255.0) ** inv_gamma) * 255
                           for i in np.arange(0, 256)]).astype("uint8")
 
         # apply gamma correction using the lookup table
