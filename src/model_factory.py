@@ -1,15 +1,37 @@
-from torchvision.models import inception_v3, squeezenet1_1, resnet152, resnet34, resnet50, resnet101, densenet121, densenet161, densenet169, densenet201, resnet18
+from torchvision.models import vgg19, inception_v3, squeezenet1_1, resnet152, resnet34, resnet50, resnet101, \
+    densenet121, densenet161, densenet169, densenet201, resnet18
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
-from torch.nn.functional import softmax
 from dpn import model_factory as dpn_factory
 from se_net.se_inception import SEInception3
+import sys
+sys.path.append('../pretrained-models.pytorch')
+import pretrainedmodels
 
 
 def get_model(num_classes, architecture):
     model = None
-    if "seinception" in architecture:
-        model = SEInception3(num_classes=num_classes)
+    if architecture == 'inceptionresnetv2':
+        model_name = 'inceptionresnetv2'  # could be fbresnet152 or inceptionresnetv2
+        model = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet').cuda()
+    elif 'vgg' in architecture:
+        if architecture == 'vgg19':
+            model = vgg19(pretrained=True).cuda()
+        if model is not None:
+            model.classifier = nn.Sequential(
+                nn.Linear(512 * 7 * 7, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, num_classes),
+            )
+    elif 'inception_v3' in architecture:
+        model = inception_v3(pretrained=True).cuda()
+        model.fc = nn.Linear(model.fc.in_features, num_classes).cuda()
+    elif "seinception" in architecture:
+        model = SEInception3(num_classes=num_classes).cuda()
     elif "seresnet" in architecture:
         if architecture == 'seresnet18':
             model = se_resnet18(num_classes).cuda()
@@ -61,9 +83,9 @@ def get_model(num_classes, architecture):
     elif "dpn" in architecture:
         if architecture == "dpn68":
             model = dpn_factory.create_model(architecture,
-                                               num_classes=1000,
-                                               pretrained=False,
-                                               test_time_pool=False)
+                                             num_classes=1000,
+                                             pretrained=False,
+                                             test_time_pool=False)
             model.classifier = nn.Conv2d(model.in_chs, num_classes, kernel_size=1, bias=True)
     if model is None:
         raise ValueError('Unknown architecture: ', architecture)

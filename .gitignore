@@ -3,6 +3,7 @@ __pycache__/
 .idea
 data/
 results/
+pretrained-models.pytorch/
 *.py[cod]
 *$py.class
 
