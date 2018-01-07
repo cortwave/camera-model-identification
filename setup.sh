@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 
-git clone https://github.com/Cadene/pretrained-models.pytorch.git
+git clone https://github.com/Cadene/pretrained-models.pytorch.git && \
 
-mkdir data
-mkdir results
+mkdir data && \
+mkdir results && \
 
-cd data
+cd data && \
 
-kg download -u '$1' -p '$2' -c 'sp-society-camera-model-identification'
+kg download -u $1 -p $2 -c 'sp-society-camera-model-identification' && \
 
-unzip test.zip
-unzip train.zip
+unzip test.zip && unzip train.zip && \
 
-cd ././src
+cd ../src/scripts && \
 
-python3 scripts/split_folds.py
+python3 split_folds.py && \
 
 echo 'Done!'
