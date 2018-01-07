@@ -6,14 +6,16 @@ import numpy as np
 
 
 def crop_and_flip():
+    size = 350
     return transforms.Compose([
-        RandomOrder([
-            RandomJPG([70, 90], 0.25),
-            RandomResize([0.5, 0.8, 1.5, 2.0], 0.25),
-            RandomGamma([0.8, 1.2], 0.25),
-            RandomHFlip()
+        RandomCrop(size * 2),
+        RandomSelect([
+            RandomResize([0.5, 0.8, 1.5, 2.0], 0.5),
+            RandomGamma([0.8, 1.2], 0.5),
+            RandomJPG([70, 90], 0.5),
         ]),
-        RandomCrop(512),
+        RandomHFlip(),
+        RandomCrop(size),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
@@ -35,14 +37,13 @@ def test_augm():
     ])
 
 
-class RandomOrder:
+class RandomSelect:
     def __init__(self, transforms):
         self.transforms = transforms
 
     def __call__(self, img):
-        indexes = np.random.permutation(len(self.transforms))
-        for idx in indexes:
-            img = self.transforms[idx](img)
+        t = np.random.choice(self.transforms)
+        img = t(img)
         return img
 
 

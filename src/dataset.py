@@ -1,5 +1,6 @@
 import torch.utils.data as data
 import pandas as pd
+from skimage.io import imread
 import cv2
 import os
 import glob
@@ -7,8 +8,11 @@ from tqdm import tqdm
 
 
 def load(image):
-    img = cv2.imread(image)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    try:
+        img = imread(image)
+    except Exception:
+        img = cv2.imread(image)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     if img.shape == (2,):
         return img[0]
     else:
@@ -23,11 +27,11 @@ class Dataset(data.Dataset):
             folds.remove(n_fold)
             train_dfs = [pd.read_csv('../data/fold_{}.csv'.format(i), header=None) for i in folds]
             df = pd.concat(train_dfs)
-            self.size = len(df) * 10
+            self.size = len(df) * 25
         else:
             valid_fold = pd.read_csv('../data/fold_{}.csv'.format(n_fold), header=None)
             df = valid_fold
-            self.size = len(df) * 20
+            self.size = len(df) * 25
         self.cached_limit = int(len(df) * cached_part)
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}

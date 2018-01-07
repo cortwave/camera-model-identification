@@ -188,7 +188,7 @@ class Model(object):
                     shutil.copy(str(self.model_path), str(self.best_model_path))
                 elif patience and epoch - lr_reset_epoch > patience and min(
                         valid_losses[-patience:]) > self.best_valid_loss:
-                    lr /= 2
+                    lr /= 10
                     lr_reset_epoch = epoch
                     optimizer = self._init_optimizer()
             except KeyboardInterrupt:
@@ -216,10 +216,10 @@ class Model(object):
             with open('../results/{}/{}_{}.csv'.format(architecture, name, fold), "w") as f:
                 f.write("fname,camera\n")
                 for idx in tqdm.tqdm(range(len(test_dataset))):
-                    images = torch.stack([test_dataset[idx][0]])
+                    images = torch.stack([test_dataset[idx][0] for _ in range(tta)])
                     images = variable(images)
                     pred = model(images).data.cpu().numpy()
-                    pred = pred[0]
+                    pred = np.sum(pred, axis=0)
                     fname = test_dataset[idx][1]
                     label = np.argmax(pred, 0)
                     camera_model = test_dataset.inverse_dict[label]
