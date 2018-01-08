@@ -10,14 +10,14 @@ def crop_and_flip():
     return transforms.Compose([
         RandomCrop(size * 2),
         RandomSelect([
-            RandomResize([0.5, 0.8, 1.5, 2.0], 0.5),
-            RandomGamma([0.8, 1.2], 0.5),
-            RandomJPG([70, 90], 0.5),
+            RandomResize((0.5, 2.0), 0.5),
+            RandomGamma((0.7, 1.3), 0.5),
+            RandomJPG((68, 92), 0.5),
         ]),
         RandomHFlip(),
         RandomCrop(size),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
 
@@ -33,7 +33,7 @@ def test_augm():
     return transforms.Compose([
         RandomHFlip(),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
 
@@ -48,13 +48,13 @@ class RandomSelect:
 
 
 class RandomJPG:
-    def __init__(self, quality, prob):
-        self.quality = quality
+    def __init__(self, borders, prob):
+        self.borders = borders
         self.prob = prob
 
     def __call__(self, img):
         if np.random.random() < self.prob:
-            quality = int(np.random.choice(self.quality))
+            quality = np.random.randint(self.borders[0], self.borders[1])
             out = BytesIO()
             i = Image.fromarray(img)
             i.save(out, format='jpeg', quality=quality)
@@ -90,13 +90,13 @@ class RandomHFlip:
 
 
 class RandomResize:
-    def __init__(self, coeffs, prob):
-        self.coeffs = coeffs
+    def __init__(self, borders, prob):
+        self.borders = borders
         self.prob = prob
 
     def __call__(self, img):
         if np.random.random() < self.prob and img.shape[0] > 1024 and img.shape[1] > 1024:
-            coeff = np.random.choice(self.coeffs)
+            coeff = np.random.uniform(self.borders[0], self.borders[1])
             result = cv2.resize(img, dsize=None, fx=coeff, fy=coeff, interpolation=cv2.INTER_CUBIC)
             return result
         else:
@@ -104,13 +104,13 @@ class RandomResize:
 
 
 class RandomGamma:
-    def __init__(self, coeffs, prob):
-        self.coeffs = coeffs
+    def __init__(self, borders, prob):
+        self.borders = borders
         self.prob = prob
 
     def __call__(self, img):
         if np.random.random() < self.prob:
-            coeff = np.random.choice(self.coeffs)
+            coeff = np.random.uniform(self.borders[0], self.borders[1])
             return self._adjust_gamma(img, coeff)
         else:
             return img
