@@ -13,7 +13,7 @@ def get_model(num_classes, architecture):
     model = None
     if architecture == 'inceptionresnetv2':
         model_name = 'inceptionresnetv2'  # could be fbresnet152 or inceptionresnetv2
-        model = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet').cuda()
+        model = pretrainedmodels.__dict__[model_name](num_classes=num_classes, pretrained=False).cuda()
     elif 'vgg' in architecture:
         if architecture == 'vgg19':
             model = vgg19(pretrained=True).cuda()
