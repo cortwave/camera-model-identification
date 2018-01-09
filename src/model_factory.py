@@ -2,6 +2,7 @@ from torchvision.models import vgg19, inception_v3, squeezenet1_1, resnet152, re
     densenet121, densenet161, densenet169, densenet201, resnet18
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
+from widenet.widenet import Widenet
 from dpn import model_factory as dpn_factory
 from se_net.se_inception import SEInception3
 import sys
@@ -11,7 +12,9 @@ import pretrainedmodels
 
 def get_model(num_classes, architecture):
     model = None
-    if architecture == 'inceptionresnetv2':
+    if architecture == 'widenet':
+        model = Widenet(num_classes).cuda()
+    elif architecture == 'inceptionresnetv2':
         model = pretrainedmodels.__dict__[architecture](num_classes=num_classes, pretrained=False).cuda()
     elif 'vgg' in architecture:
         if architecture == 'vgg19':
