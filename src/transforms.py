@@ -15,9 +15,9 @@ def crop_and_flip():
             RandomJPG((68, 92), 0.5),
         ]),
         RandomHFlip(),
+        Denoise(),
         RandomCrop(size),
         transforms.ToTensor(),
-        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
 
@@ -32,10 +32,21 @@ def valid_augm():
 def test_augm():
     return transforms.Compose([
         RandomHFlip(),
+        Denoise(),
         RandomCrop(350),
         transforms.ToTensor(),
-        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
+
+
+class Denoise:
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        h = np.random.uniform(2., 4.)
+        hColor = np.random.uniform(2., 4.)
+        denoised = cv2.fastNlMeansDenoisingColored(img, h=h, hColor=hColor)
+        return img - denoised
 
 
 class RandomSelect:
