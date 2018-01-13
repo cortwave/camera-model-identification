@@ -5,6 +5,7 @@ import cv2
 import os
 import glob
 from tqdm import tqdm
+from joblib import Parallel, delayed
 
 
 def load(image):
@@ -15,6 +16,13 @@ def load(image):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     if img.shape == (2,):
         return img[0]
+    else:
+        return img
+
+
+def load_cached(idx, img, limit):
+    if idx < limit:
+        return load(img)
     else:
         return img
 
@@ -36,9 +44,11 @@ class Dataset(data.Dataset):
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}
         images_names = df[0].values
-        self.images = [load(x) if idx < self.cached_limit else x for idx, x in tqdm(enumerate(images_names),
-                                                                                    total=len(images_names),
-                                                                                    desc='images loading')]
+        self.images_names = images_names
+        self.images = Parallel(n_jobs=8)(
+            delayed(load_cached)(idx, x, self.cached_limit) for idx, x in tqdm(enumerate(images_names),
+                                                                               total=len(images_names),
+                                                                               desc='images loading'))
         labels = df[1].values
         self.labels = [categories_dict[cat] for cat in labels]
         self.transform = transform
@@ -51,7 +61,8 @@ class Dataset(data.Dataset):
         idx = idx % len(self.images)
         x = self.images[idx] if idx < self.cached_limit else load(self.images[idx])
         if self.transform:
-            x = self.transform(x)
+            manip = 'manip' in self.images_names[idx]
+            x = self.transform(x, manip)
         y = self.labels[idx]
         return x, y
 

@@ -3,30 +3,36 @@ from io import BytesIO
 from PIL import Image
 import cv2
 import numpy as np
+from skimage.transform import rotate
+
+size = 350
 
 
-def crop_and_flip():
-    size = 350
-    return transforms.Compose([
-        RandomCrop(size * 2),
-        RandomSelect([
-            RandomResize((0.5, 2.0), 0.5),
-            RandomGamma((0.7, 1.3), 0.5),
-            RandomJPG((68, 92), 0.5),
-        ]),
-        RandomHFlip(),
-        Denoise(),
-        RandomCrop(size),
-        transforms.ToTensor(),
-    ])
+def transform(img, manip):
+    ops = [RandomCrop(size * 2, strict=False)]
+    if not manip:
+        ops.append(
+            RandomSelect([
+                RandomResize((0.5, 2.0), 0.5),
+                RandomGamma((0.7, 1.3), 0.5),
+                RandomJPG((68, 92), 0.5),
+            ]
+            ))
+    for o in [RandomHFlip(),
+              RandomCrop(size),
+              RandomRotate([0, 90, 180, 270]),
+              transforms.ToTensor()]:
+        ops.append(o)
+    ops = transforms.Compose(ops)
+    return ops(img)
 
 
 def train_augm():
-    return crop_and_flip()
+    return transform
 
 
 def valid_augm():
-    return crop_and_flip()
+    return transform
 
 
 def test_augm():
@@ -78,10 +84,13 @@ class RandomJPG:
 
 
 class RandomCrop:
-    def __init__(self, size):
+    def __init__(self, size, strict=True):
         self.size = size
+        self.strict = strict
 
     def __call__(self, img):
+        if (img.shape[0] < self.size or img.shape[1] < self.size) and not self.strict:
+            return img
         try:
             x = np.random.randint(0, img.shape[0] - self.size)
             y = np.random.randint(0, img.shape[1] - self.size)
@@ -98,6 +107,26 @@ class RandomHFlip:
     def __call__(self, img):
         if np.random.random() < 0.5:
             return np.fliplr(img).copy()
+        return img
+
+
+class RandomVFlip:
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        if np.random.random() < 0.5:
+            return np.flipud(img).copy()
+        return img
+
+
+class RandomRotate:
+    def __init__(self, angles):
+        self.angles = angles
+
+    def __call__(self, img):
+        angle = np.random.choice(self.angles)
+        img = rotate(img, angle)
         return img
 
 
