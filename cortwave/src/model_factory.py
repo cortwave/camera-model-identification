@@ -31,8 +31,7 @@ def get_model(num_classes, architecture):
                 nn.Linear(4096, num_classes),
             )
     elif 'inception_v3' in architecture:
-        model = inception_v3(pretrained=True).cuda()
-        model.fc = nn.Linear(model.fc.in_features, num_classes).cuda()
+        model = inception_v3(pretrained=False, aux_logits=False, num_classes=num_classes).cuda()
     elif "seinception" in architecture:
         model = SEInception3(num_classes=num_classes).cuda()
     elif "seresnet" in architecture:
