@@ -1,5 +1,6 @@
-from torchvision.models import vgg19, inception_v3, squeezenet1_1, resnet152, resnet34, resnet50, resnet101, \
+from torchvision.models import vgg19, squeezenet1_1, resnet152, resnet34, resnet50, resnet101, \
     densenet121, densenet161, densenet169, densenet201, resnet18
+from inception.inception import inception_v3
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
 from widenet.widenet import Widenet
