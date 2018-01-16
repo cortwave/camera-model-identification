@@ -18,10 +18,7 @@ def transform(img, manip):
                 RandomJPG((68, 92), 0.5),
             ]
             ))
-    for o in [RandomHFlip(),
-              RandomCrop(size),
-              RandomRotate([0, 90, 180, 270]),
-              transforms.ToTensor()]:
+    for o in [transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
     return ops(img)
@@ -37,9 +34,7 @@ def valid_augm():
 
 def test_augm():
     return transforms.Compose([
-        RandomHFlip(),
-        Denoise(),
-        RandomCrop(350),
+        RandomCrop(size),
         transforms.ToTensor(),
     ])
 
