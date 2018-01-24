@@ -1,5 +1,5 @@
 from glob import glob
-from functools import reduce
+from functools import reduce, partial
 
 import pandas as pd
 from keras.applications.inception_resnet_v2 import preprocess_input
@@ -9,6 +9,7 @@ from tqdm import tqdm
 import cv2
 import numpy as np
 
+from src.aug import jpg_compress, gamma_correction
 
 def _crop(img, shape, option):
     margin = 512 - shape
@@ -28,17 +29,26 @@ def get_test_files():
     for f in files:
         img = cv2.imread(f)
         name = f.split('/')[-1]
-        crops = universal_aug([_crop(img, 384, x) for x in range(5)])
-        # ToDo: this is highly uneffective
-        crops = np.array(crops).astype('float32')
-        crops = preprocess_input(crops)
+        safe = 'manip' in name
+        crops = batch_aug([_crop(img, 384, x) for x in range(5)], safe=safe)
+        crops = preprocess_input(crops.astype('float32'))
         yield name, crops
 
 
-def universal_aug(x):
-    x = x + np.fliplr(x).tolist() + np.flipud(x).tolist()
-    assert len(x) == 15
-    return x
+def batch_aug(imgs, safe=True):
+    a, b, c = imgs[0].shape
+
+    functions = [lambda x: x, np.flipud, np.fliplr, partial(np.rot90, k=1), partial(np.rot90, k=3)]
+
+    if not safe:
+        functions += [jpg_compress, gamma_correction]
+
+    batch = np.empty((len(functions) * len(imgs), a, b, c), dtype=np.uint8)
+    for i, f in enumerate(functions):
+        for j, img in enumerate(imgs):
+            idx = i * len(imgs) + j
+            batch[idx] = f(img)
+    return batch
 
 
 def predict(model_name):
@@ -47,7 +57,7 @@ def predict(model_name):
 
     models = glob(f'result/models/{model_name}*.h5')
     result = []
-    models = [load_model(model) for model in models]
+    models = [load_model(model, compile=False) for model in models]
 
     probas = []
 
