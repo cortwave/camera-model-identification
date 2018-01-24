@@ -1,0 +1,58 @@
+{
+    "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train.tsv",
+    "val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
+    "test_path": "/home/mephistopheies/storage2/data/camera-model-id/raw/test/",
+    "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_zotac/",
+    
+    "model_path": null,
+    "model_path_c": "/home/mephistopheies/storage2/data/camera-model-id/models/resnet34fc/256_pretrained_random_aug_kaggle_10/best_model.tar",
+        
+    "crop_center_size": 1520,
+    "crop_size": 256,
+    "step_crop_val": 128,
+    "n_crops_train": 16,
+    "n_crops_search_train": null,
+    "batch_size_train_c": 9,    
+    "batch_size_train_d": 8,
+    "batch_size_train_g": 16,
+    "batch_size_val_c": 25,
+    "workers": 4,
+        
+    "n_epoches": 1000,
+    "n_epoches_g_fixed": 10,
+    "n_train_iter": 50,
+    "n_iter_c": 5,    
+    "n_iter_d": 10,
+    "n_iter_g": 1,    
+        
+    "n_classes": 10,
+    "model_type_fe": "resnet34_fe",
+    "model_type_d": "FCDiscriminator",
+    "model_type_c": "AvgClassifier512",
+                        
+    "learning_rate_c": 0.001,
+    "momentum_c": 0.9,
+    "weight_decay_c": 0.0,    
+    "lr_scheduler_step_size_c": 25,
+    "lr_scheduler_gamma_c": 0.5,
+        
+    "learning_rate_g": 0.01,
+    "momentum_g": 0.9,
+    "weight_decay_g": 0.0,    
+    "lr_scheduler_step_size_g": 25,
+    "lr_scheduler_gamma_g": 0.5,
+        
+    "learning_rate_d": 0.01,
+    "momentum_d": 0.9,
+    "weight_decay_d": 0.0,    
+    "lr_scheduler_step_size_d": 25,
+    "lr_scheduler_gamma_d": 0.5,
+
+    "do_random_aug_kaggle": true,
+    "p_random_aug_kaggle_train": 1.0,
+    "p_random_aug_kaggle_val": 0.5,
+    "do_hard_aug": false,
+    "p_hard_aug_train": 1.0,
+    "p_hard_aug_val": 0.5
+    
+}

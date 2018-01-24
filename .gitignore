@@ -106,3 +106,7 @@ ENV/
 
 arseny/data*
 arseny/result*
+
+mephistopheies/data
+mephistopheies/tmp
+mephistopheies/kaggle_camera_model_id_lib/kaggle_camera_model_id_lib/__pycache__

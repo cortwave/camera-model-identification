@@ -1,0 +1,39 @@
+{
+    "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train.tsv",
+    "train_list_pseudo_npz": "/home/mephistopheies/storage2/data/camera-model-id/pseudo_labels/phase1/",
+    "val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
+    "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_msi/",
+        
+    "model_path": null,
+    
+    "crop_center_size": 1520,
+    "crop_size": 256,
+    "step_crop_val": 128,
+    "n_crops_train": 7,
+    "n_crops_search_train": 36,
+    "batch_size_train": 5,
+    "batch_size_val": 15,  
+    "workers": 4,  
+    "n_epoches": 1000, 
+        
+    "n_classes": 10,
+    "model_type": "Vgg19Head_E_2b_bn",
+                
+    "optim_type": "sgd",
+    "learning_rate": 0.1,
+    "momentum": 0.9,
+    "lr_scheduler_step_size": 50,
+    "lr_scheduler_gamma": 0.5,
+    "weight_decay": 0.0,
+        
+    "criterion_type": "CrossEntropyLoss",
+    "criterion_params": null,
+    
+    "do_random_aug_kaggle": false,
+    "p_random_aug_kaggle_train": 1.0,
+    "p_random_aug_kaggle_val": 0.5,
+    "do_hard_aug": false,
+    "p_hard_aug_train": 1.0,
+    "p_hard_aug_val": 0.5
+    
+}
