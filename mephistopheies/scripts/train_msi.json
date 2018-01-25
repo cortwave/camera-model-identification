@@ -1,6 +1,6 @@
 {
     "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train.tsv",
-    "train_list_pseudo_npz": "/home/mephistopheies/storage2/data/camera-model-id/pseudo_labels/phase1/",
+    "train_list_pseudo_npz": "/home/mephistopheies/storage2/data/camera-model-id/pseudo_labels/resnet34fc__256_pretrained_random_aug_kaggle_10__phase1",
     "val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
     "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_msi/",
         
@@ -10,14 +10,14 @@
     "crop_size": 256,
     "step_crop_val": 128,
     "n_crops_train": 7,
-    "n_crops_search_train": 36,
-    "batch_size_train": 5,
+    "n_crops_search_train": null,
+    "batch_size_train": 15,
     "batch_size_val": 15,  
     "workers": 4,  
     "n_epoches": 1000, 
         
     "n_classes": 10,
-    "model_type": "Vgg19Head_E_2b_bn",
+    "model_type": "resnet34fc_pretrained_maxpool",
                 
     "optim_type": "sgd",
     "learning_rate": 0.1,
@@ -29,7 +29,7 @@
     "criterion_type": "CrossEntropyLoss",
     "criterion_params": null,
     
-    "do_random_aug_kaggle": false,
+    "do_random_aug_kaggle": true,
     "p_random_aug_kaggle_train": 1.0,
     "p_random_aug_kaggle_val": 0.5,
     "do_hard_aug": false,

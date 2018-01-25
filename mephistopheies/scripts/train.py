@@ -146,9 +146,13 @@ model_factory = {
         num_classes=n_classes, nun_block35=5, num_block17=10),
     'resnet34fc_pretrained': lambda n_classes: ResNetFC(
         models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34'),
+    'resnet34fc_pretrained_maxpool': lambda n_classes: ResNetFC(
+        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34', pool_type='max'),
     'resnet50fc_pretrained': lambda n_classes: ResNetFC(
         models.resnet.Bottleneck, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet50'),
-    'FatNet1': lambda n_classes: FatNet1(n_classes)
+    'FatNet1': lambda n_classes: FatNet1(n_classes),
+    'resnet34X_pretrained_maxpool': lambda n_classes: ResNetX(
+        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34', pool_type='max')
 }
 
 criterion_factory = {
