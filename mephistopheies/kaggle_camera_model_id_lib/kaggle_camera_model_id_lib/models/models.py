@@ -192,7 +192,7 @@ class IEEEfcn(nn.Module):
 
 class ResNetFC(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, load_resnet='resnet18'):
+    def __init__(self, block, layers, num_classes=1000, load_resnet='resnet18', pool_type='avg'):
         self.inplanes = 64
         super(ResNetFC, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -210,7 +210,11 @@ class ResNetFC(nn.Module):
             kernel_size=(1, 1), stride=(1, 1), padding=(0, 0),
             bias=True)
         self.bn2 = nn.BatchNorm2d(num_classes)
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        if pool_type == 'max':
+            self.avgpool = nn.AdaptiveMaxPool2d(1)
+        else:
+            self.avgpool = nn.AdaptiveAvgPool2d(1)
+        
         
 
         for m in self.modules():
@@ -266,7 +270,7 @@ class ResNetFC(nn.Module):
     
 class ResNetX(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, load_resnet='resnet18'):
+    def __init__(self, block, layers, num_classes=1000, load_resnet='resnet18', pool_type='avg'):
         self.inplanes = 64
         super(ResNetX, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -279,8 +283,15 @@ class ResNetX(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
                
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Linear(512 * block.expansion, num_classes)
+        if pool_type == 'max':
+            self.avgpool = nn.AdaptiveMaxPool2d(1)
+        else:
+            self.avgpool = nn.AdaptiveAvgPool2d(1)
+        
+        self.fc1 = nn.Linear(512 * block.expansion, 512)
+        self.bn2 = nn.BatchNorm2d(512)
+        
+        self.fc2 = nn.Linear(512, num_classes)
         
 
         for m in self.modules():
@@ -329,6 +340,9 @@ class ResNetX(nn.Module):
 
         x = self.avgpool(x)
         x = self.fc1(x.squeeze())
+        x = self.bn2(x)
+        x = self.relu(x)
+        x = self.fc2(x)
 
         return x
 
