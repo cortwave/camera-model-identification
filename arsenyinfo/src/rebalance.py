@@ -1,10 +1,17 @@
+from glob import glob
+
 import numpy as np
 import pandas as pd
 
 from fire import Fire
 
 def main(model_name):
-    df = pd.read_csv(f'result/probas_{model_name}.csv')
+
+    files = [pd.read_csv(x) for x in glob(f'result/probas_{model_name}*.csv')]
+    df = pd.concat(files)
+    df = df.groupby('fname').agg(np.sum).reset_index()
+    df.describe()
+
     classes = ['HTC-1-M7', 'LG-Nexus-5x', 'Motorola-Droid-Maxx', 'Motorola-Nexus-6',
                'Motorola-X', 'Samsung-Galaxy-Note3', 'Samsung-Galaxy-S4', 'Sony-NEX-7',
                'iPhone-4s', 'iPhone-6']
