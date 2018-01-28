@@ -29,9 +29,8 @@ def fit_once(model, model_name, loss, train, val, dataset_name, n_fold, start_ep
     return model, max(history.epoch)
 
 
-def fit_model(dataset_name, model_name, batch_size=16, n_fold=1):
+def fit_model(dataset_name, model_name, batch_size=16, n_fold=1, shape=384):
     dataset, n_classes = get_dataset(dataset_name)
-    shape = 384
     aug = partial(augment, expected_shape=shape)
 
     n_fold = int(n_fold)
