@@ -3,16 +3,14 @@ from glob import glob
 from functools import partial
 
 import cv2
-import numpy as np
 import pandas as pd
 from keras.models import load_model
-from joblib import Parallel, delayed
 from tqdm import tqdm
 from fire import Fire
 
-from src.predict import preprocess_input
+from src.predict import preprocess_input, batch_aug, _crop
 from src.dataset import KaggleDataset
-from src.aug import augment
+from src.aug import augment, center_crop
 
 logging.getLogger('tensorflow').setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO,
@@ -22,12 +20,11 @@ logger = logging.getLogger(__name__)
 
 N_FOLDS = 5
 
-POOL = Parallel(n_jobs=4, backend='multiprocessing')
-
 
 def make_crops(img):
-    crops = np.array(POOL(delayed(augment)(img, expected_shape=384) for _ in range(32)), dtype='float32')
-    crops = preprocess_input(crops)
+    img = center_crop(img, 512)
+    crops = batch_aug([_crop(img, 384, x) for x in range(5)], safe=False)
+    crops = preprocess_input(crops.astype('float32'))
     return crops
 
 
