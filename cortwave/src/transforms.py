@@ -39,6 +39,21 @@ def test_augm():
     ])
 
 
+class ExtractNoise:
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        kernel_filter = 1 / 12. * np.array([
+            [-1, 2, -2, 2, -1],
+            [2, -6, 8, -6, 2],
+            [-2, 8, -12, 8, -2],
+            [2, -6, 8, -6, 2],
+            [-1, 2, -2, 2, -1]
+        ])
+        return cv2.filter2D(img, -1, kernel_filter)
+
+
 class Denoise:
     def __init__(self):
         pass
