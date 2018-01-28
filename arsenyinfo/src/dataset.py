@@ -11,7 +11,7 @@ import pandas as pd
 from src.aug import crop, center_crop
 from src.utils import logger
 
-BEST_PROBAS = 'result/blended_probas_pseudo_.csv'
+VOTING = 'data/voting.csv'
 
 
 class Dataset:
@@ -45,7 +45,7 @@ class Dataset:
 
     @staticmethod
     def get_data():
-        raise NotADirectoryError('Implement real get_data method first.')
+        raise NotImplementedError('Implement real get_data method first.')
 
     def __next__(self):
         x_data, y_data = [], []
@@ -110,9 +110,9 @@ class KaggleDataset(Dataset):
         return acc, cat_names, cat_index
 
 
-class PseudoDataset(Dataset):
-    @staticmethod
-    def get_data():
+class MixedDataset(Dataset):
+    def get_data(self):
+        # main data
         categories = sorted(glob('/media/ssd/data/train/*'))
         cat_names = [x.split('/')[-1] for x in categories]
         cat_index = {k: i for i, k in enumerate(cat_names)}
@@ -128,21 +128,50 @@ class PseudoDataset(Dataset):
                 i += 1
                 acc[fold].append((f, y_idx))
 
-        df = pd.read_csv(BEST_PROBAS)
-        df = df[df.fname.str.contains('unalt')]
-        threshold = df[cat_names].values.max() * .999
-        fname = df.pop('fname')
-        labels = [(f, row.argmax()) for f, (i, row) in zip(fname, df.iterrows())
-                  if row.max() > threshold]
-        labels = sorted(labels, key=lambda x: x[1])
+        logger.info(f'{i} samples come from the main train dataset')
 
-        for i, (k, v) in enumerate(labels):
+        # voting based pseudo labels
+        df = pd.read_csv(VOTING)
+        df = df[df.votes > 6].sort_values('best_model').reset_index()[['fname', 'best_model']]
+
+        for i, row in df.iterrows():
             fold = i % 5
+            k = row['fname']
+            v = row['best_model']
             f = join('data/test/', k)
             y_idx = cat_index[v]
             acc[fold].append((f, y_idx))
+        logger.info(f'{i} samples come from the pseudo labels dataset')
+
+        # Vision dataset
+        files = self.list_vision_files()
+
+        i = 0
+        for f in files:
+            y = self.parse_vision_class(f)
+            if y is None:
+                continue
+            y_idx = cat_index[y]
+            fold = i % 5
+            i += 1
+            acc[fold].append((f, y_idx))
+        logger.info(f'{i} samples come from the vision dataset')
 
         return acc, cat_names, cat_index
+
+    @staticmethod
+    def list_vision_files():
+        # return glob('data/vision/*/images/flat/*.jpg') + glob('data/vision/*/images/nat/*.jpg')
+        return glob('data/vision/*/images/nat/*.jpg')
+
+    @staticmethod
+    def parse_vision_class(s):
+        cls = s.split('/')[2][:3]
+        if cls in {'D02', 'D10'}:
+            return 'iPhone-4s'
+        if cls in {'D06', 'D15'}:
+            return 'iPhone-6'
+        return
 
 
 class PseudoOnlyDataset(Dataset):
@@ -227,40 +256,6 @@ class VisionDataset(Dataset):
         return acc, cat_names, cat_index
 
 
-class MixedDataset(Dataset):
-    @staticmethod
-    def list_files():
-        return glob('data/vision/*/images/flat/*.jpg') \
-               + glob('data/vision/*/images/nat/*.jpg') \
-               + glob('data/dresden/*JPG')
-
-    @staticmethod
-    def parse_class(s):
-        if 'vision' in s:
-            return s.split('/')[2]
-        return s.split('/')[-1][::-1].split('_', 2)[-1][::-1]
-
-    def get_data(self):
-        files = self.list_files()
-        cat_names = sorted(list(set([self.parse_class(x) for x in files])))
-        cat_index = {k: i for i, k in enumerate(cat_names)}
-
-        logger.info(f'MixedDataset classes: {cat_names}; {len(files)} samples')
-
-        acc = defaultdict(list)
-        i = 0
-
-        for f in files:
-            y = self.parse_class(f)
-            y_idx = cat_index[y]
-
-            fold = i % 5
-            i += 1
-            acc[fold].append((f, y_idx))
-
-        return acc, cat_names, cat_index
-
-
 class SiameseWrapper:
     def __init__(self, dataset):
         self.dataset = dataset
@@ -288,11 +283,10 @@ class SiameseWrapper:
 
 def get_dataset(dataset):
     datasets = {'kaggle': (KaggleDataset, 10),
-                'pseudo': (PseudoDataset, 10),
                 'pseudo_only': (PseudoOnlyDataset, 10),
                 'vision': (VisionDataset, 24),
                 'dresden': (DresdenDataset, 27),
-                'mixed': (MixedDataset, 51)}
+                'mixed': (MixedDataset, 10)}
     return datasets[dataset]
 
 
