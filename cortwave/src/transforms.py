@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from skimage.transform import rotate
 
-size = 350
+size = 128
 
 
 def transform(img, manip):
-    ops = [RandomCrop(size * 2, strict=False)]
+    ops = []
     if not manip:
         ops.append(
             RandomSelect([
@@ -18,7 +18,7 @@ def transform(img, manip):
                 RandomJPG((68, 92), 0.5),
             ]
             ))
-    for o in [transforms.ToTensor()]:
+    for o in [RandomCrop(size), ExtractNoise(), transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
     return ops(img)
@@ -37,6 +37,21 @@ def test_augm():
         RandomCrop(size),
         transforms.ToTensor(),
     ])
+
+
+class ExtractNoise:
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        kernel_filter = 1 / 12. * np.array([
+            [-1, 2, -2, 2, -1],
+            [2, -6, 8, -6, 2],
+            [-2, 8, -12, 8, -2],
+            [2, -6, 8, -6, 2],
+            [-1, 2, -2, 2, -1]
+        ])
+        return cv2.filter2D(img, -1, kernel_filter)
 
 
 class Denoise:

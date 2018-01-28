@@ -8,6 +8,14 @@ from tqdm import tqdm
 import numpy as np
 from joblib import Parallel, delayed
 
+def crop_center(img,crop=512):
+    if img.shape[0] > crop or img.shape[1] > crop:
+        y,x = img.shape[:2]
+        startx = x//2-(crop//2)
+        starty = y//2-(crop//2)
+        return img[starty:starty+crop,startx:startx+crop, :]
+    else:
+        return img
 
 def load(image):
     try:
@@ -16,9 +24,10 @@ def load(image):
         img = cv2.imread(image)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     if img.shape == (2,):
-        return img[0]
-    else:
-        return img
+        img = img[0]
+    return crop_center(img)
+
+
 
 
 def load_cached(idx, img, limit):
@@ -29,7 +38,7 @@ def load_cached(idx, img, limit):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, n_fold, cached_part=0.5, transform=None, train=True):
+    def __init__(self, n_fold, cached_part=1.0, transform=None, train=True):
         if train:
             n_folds = len(glob.glob('../data/fold_*.csv'))
             folds = list(range(n_folds))
