@@ -11,6 +11,8 @@ import pandas as pd
 from src.aug import crop, center_crop
 from src.utils import logger
 
+BEST_PROBAS = 'result/blended_probas_pseudo_.csv'
+
 
 class Dataset:
     def __init__(self, n_fold, batch_size, size=384, transform=None, train=True, aug=None, center_crop_size=1024,
@@ -126,7 +128,7 @@ class PseudoDataset(Dataset):
                 i += 1
                 acc[fold].append((f, y_idx))
 
-        df = pd.read_csv('result/probas.csv')
+        df = pd.read_csv(BEST_PROBAS)
         df = df[df.fname.str.contains('unalt')]
         threshold = df[cat_names].values.max() * .999
         fname = df.pop('fname')
@@ -152,7 +154,7 @@ class PseudoOnlyDataset(Dataset):
 
         acc = defaultdict(list)
 
-        df = pd.read_csv('result/probas.csv')
+        df = pd.read_csv(BEST_PROBAS)
         df = df[df.fname.str.contains('unalt')]
         threshold = df[cat_names].values.max() * .999
         fname = df.pop('fname')
@@ -257,6 +259,31 @@ class MixedDataset(Dataset):
             acc[fold].append((f, y_idx))
 
         return acc, cat_names, cat_index
+
+
+class SiameseWrapper:
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __next__(self):
+        x_data, y_data = next(self.dataset)
+        batch_size = self.dataset.batch_size // 2
+
+        _, w, h, c = x_data.shape
+        x1_batch, x2_batch = np.empty(shape=(batch_size, w, h, c), dtype=x_data.dtype), \
+                             np.empty(shape=(batch_size, w, h, c), dtype=x_data.dtype)
+        y_batch = np.zeros(shape=(batch_size, 1))
+
+        for i in np.arange(batch_size):
+            idx = np.arange(batch_size)
+            np.random.shuffle(idx)
+
+            a, b = 2 * i, 2 * i + 1
+            x1_batch[i, :, :, :] = x_data[a]
+            x2_batch[i, :, :, :] = x_data[b]
+            y_batch[i] = 0 if np.all(np.equal(y_data[a], y_data[b])) else 1
+
+        return [x1_batch, x2_batch], y_batch
 
 
 def get_dataset(dataset):

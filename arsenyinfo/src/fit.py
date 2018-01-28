@@ -37,7 +37,6 @@ def fit_model(dataset_name, model_name, batch_size=16, n_fold=1):
     n_fold = int(n_fold)
     batch_size = int(batch_size)
     model, preprocess = get_model(model_name, shape, n_classes=n_classes)
-    # model, preprocess = get_prefit_model(model_name, n_classes=n_classes)
 
     train = dataset(n_fold=n_fold,
                     batch_size=batch_size,

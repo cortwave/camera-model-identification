@@ -10,6 +10,7 @@ def main(model_name):
     files = [pd.read_csv(x) for x in glob(f'result/probas_{model_name}*.csv')]
     df = pd.concat(files)
     df = df.groupby('fname').agg(np.sum).reset_index()
+    df.to_csv(f'result/blended_probas_{model_name}.csv', index=False)
     df.describe()
 
     classes = ['HTC-1-M7', 'LG-Nexus-5x', 'Motorola-Droid-Maxx', 'Motorola-Nexus-6',
