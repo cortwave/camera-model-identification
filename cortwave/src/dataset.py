@@ -90,7 +90,7 @@ class TestDataset(data.Dataset):
 
 class InternValidDataset(data.Dataset):
     def __init__(self, transform=None):
-        df = pd.read_csv('../../validation/external_validation.csv'.format(n_fold), header=None)
+        df = pd.read_csv('../../validation/external_validation.csv', header=None)
         self.cached_limit = len(df)
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}
