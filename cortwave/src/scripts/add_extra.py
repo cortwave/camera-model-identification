@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 
 def load_image(address, name):
     basename = os.path.basename(address)
-    save_path = f'../../extra_data/{name}/{basename}'
+    save_path = f'../../extra_data/flickr_images/{name}/{basename}'
     if not os.path.exists(save_path):
         request.urlretrieve(address, save_path)
 
@@ -35,7 +35,6 @@ if __name__ == '__main__':
         for line in f.readlines():
             line = line.strip()
             _, name, base_name = line.split('/')
-            shutil(f'../../extra_data/{name}/{base_name}', f'../../data/{models_dict[name]/{base_name}}')
-
-
+            real_name = models_dict[name]
+            shutil.copy(f'../../extra_data/flickr_images/{name}/{base_name}', f'../../data/train/{real_name}/{base_name}')
 
