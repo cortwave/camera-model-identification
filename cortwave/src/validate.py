@@ -45,7 +45,7 @@ def main(architecture,
     df[classes] /= len(folds)
     matched = 0
     for i in np.arange(len(test_dataset)):
-        pred = df[classes].iloc[i].values.argmax
+        pred = df[classes].iloc[i].values.argmax()
         real = labels[i]
         if pred == real:
             matched += 1
