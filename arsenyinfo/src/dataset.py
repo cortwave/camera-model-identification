@@ -12,6 +12,7 @@ from src.aug import crop, center_crop
 from src.utils import logger
 
 VOTING = 'data/voting.csv'
+EXCLUDED_PSEUDO_LABELS = 'result/weird.txt'
 
 
 class Dataset:
@@ -132,6 +133,9 @@ class MixedDataset(Dataset):
 
         # voting based pseudo labels
         df = pd.read_csv(VOTING)
+        banned = self.exclude_bad_predictions()
+        df['is_banned'] = df['fname'].apply(lambda x: x in banned)
+        df = df[~df['is_banned']]
         df = df[df.votes > 6].sort_values('best_model').reset_index()[['fname', 'best_model']]
 
         for i, row in df.iterrows():
@@ -158,6 +162,12 @@ class MixedDataset(Dataset):
         logger.info(f'{i} samples come from the vision dataset')
 
         return acc, cat_names, cat_index
+
+    @staticmethod
+    def exclude_bad_predictions():
+        with open(EXCLUDED_PSEUDO_LABELS) as lst:
+            fnames = [x[:-1] for x in lst.readlines()]
+        return set(fnames)
 
     @staticmethod
     def list_vision_files():
