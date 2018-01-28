@@ -31,6 +31,18 @@ def main(model_name):
             idx = df[df.iloc[ix].camera == 'tmp'][c].argmax()
             df.set_value(col='camera', index=idx, value=c)
 
+    df['camera_predicted'] = df.apply(lambda x: x[classes].argmax(), axis=1)
+    df['weird'] = df.camera_predicted == df.camera
+
+    with open('result/weird.txt', 'w') as out:
+        weird = df[~df.weird]
+        for f in weird['fname']:
+            out.write(f'{f}\n')
+
+    unbalanced = df[['fname', 'camera_predicted']]
+    unbalanced = unbalanced.rename(columns={'camera_predicted': 'camera'})
+    unbalanced.to_csv(f'result/unbalanced_{model_name}.csv', index=False)
+
     df = df[['fname', 'camera']]
     df.to_csv(f'result/balanced_{model_name}.csv', index=False)
 
