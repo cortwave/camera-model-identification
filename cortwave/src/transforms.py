@@ -13,12 +13,12 @@ def transform(img, manip):
     if not manip:
         ops.append(
             RandomSelect([
-                RandomResize((0.5, 2.0), 0.5),
-                RandomGamma((0.7, 1.3), 0.5),
-                RandomJPG((68, 92), 0.5),
-            ]
-            ))
-    for o in [RandomCrop(size), ExtractNoise(), transforms.ToTensor()]:
+                RandomResize((0.5, 0.8, 1.5, 2.0), 0.5),
+                RandomGamma((0.8, 1.2), 0.5),
+                RandomJPG((70, 90), 0.5),
+            ])
+        )
+    for o in [RandomCrop(size), transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
     return ops(img)
@@ -66,11 +66,11 @@ class Denoise:
 
 
 class RandomSelect:
-    def __init__(self, transforms):
-        self.transforms = transforms
+    def __init__(self, ops):
+        self.ops = ops
 
     def __call__(self, img):
-        t = np.random.choice(self.transforms)
+        t = np.random.choice(self.ops)
         img = t(img)
         return img
 
@@ -81,8 +81,9 @@ class RandomJPG:
         self.prob = prob
 
     def __call__(self, img):
+        quality = np.random.choice(self.borders)
+        quality = int(quality)
         if np.random.random() < self.prob:
-            quality = np.random.randint(self.borders[0], self.borders[1])
             out = BytesIO()
             i = Image.fromarray(img)
             i.save(out, format='jpeg', quality=quality)
@@ -146,8 +147,8 @@ class RandomResize:
         self.prob = prob
 
     def __call__(self, img):
-        if np.random.random() < self.prob and img.shape[0] > 1024 and img.shape[1] > 1024:
-            coeff = np.random.uniform(self.borders[0], self.borders[1])
+        coeff = np.random.choice(self.borders)
+        if np.random.random() < self.prob and img.shape[0] * coeff > size and img.shape[1] * coeff > size:
             result = cv2.resize(img, dsize=None, fx=coeff, fy=coeff, interpolation=cv2.INTER_CUBIC)
             return result
         else:
@@ -160,8 +161,8 @@ class RandomGamma:
         self.prob = prob
 
     def __call__(self, img):
+        coeff = np.random.choice(self.borders)
         if np.random.random() < self.prob:
-            coeff = np.random.uniform(self.borders[0], self.borders[1])
             return self._adjust_gamma(img, coeff)
         else:
             return img
