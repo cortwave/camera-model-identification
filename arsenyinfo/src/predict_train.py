@@ -5,6 +5,7 @@ from functools import partial
 import cv2
 import pandas as pd
 from keras.models import load_model
+from keras import backend as K
 from tqdm import tqdm
 from fire import Fire
 
@@ -61,7 +62,10 @@ def main(model_name):
                         d = {k: v for k, v in zip(classes, pred)}
                         d['label'] = classes[int(label)]
                         d['model'] = model_path.split('/')[-1]
+                        d['fold'] = fold
                         train.append(d)
+        K.clear_session()
+
 
     pd.DataFrame(train).to_csv(f'result/train_{model_name}.csv', index=False)
 
