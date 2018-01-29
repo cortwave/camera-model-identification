@@ -161,6 +161,18 @@ class MixedDataset(Dataset):
             acc[fold].append((f, y_idx))
         logger.info(f'{i} samples come from the vision dataset')
 
+        # flickr dataset
+        df = pd.read_csv('data/flickr.csv')
+        i = 0
+        for _, row in df.iterrows():
+            f = row.get('fname')
+            y = row.get('camera')
+
+            y_idx = cat_index[y]
+            fold = i % 5
+            i += 1
+            acc[fold].append((f, y_idx))
+        logger.info(f'{i} samples come from the flickr dataset')
         return acc, cat_names, cat_index
 
     @staticmethod
