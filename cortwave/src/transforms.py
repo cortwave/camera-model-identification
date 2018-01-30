@@ -39,6 +39,16 @@ def test_augm():
     ])
 
 
+class ExtractFFTNoise:
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        img -= cv2.GaussianBlur(img, (3, 3), 0)
+        img = np.stack([np.fft.fftshift(np.fft.fft2(img[:, :, c])) for c in range(3)], axis=-1)
+        return img
+
+
 class ExtractNoise:
     def __init__(self):
         pass
