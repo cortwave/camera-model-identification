@@ -535,3 +535,269 @@ class FatNet1(nn.Module):
         x = self.classifier(x)
         return x
 
+
+    
+class InceptionResNetV2(nn.Module):
+
+    def __init__(self, num_classes=1001):
+        super(InceptionResNetV2, self).__init__()
+        # Special attributs
+        self.input_space = None
+        self.input_size = (299, 299, 3)
+        self.mean = None
+        self.std = None
+        # Modules
+        self.conv2d_1a = BasicConv2d(3, 32, kernel_size=3, stride=2)
+        self.conv2d_2a = BasicConv2d(32, 32, kernel_size=3, stride=1)
+        self.conv2d_2b = BasicConv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        self.maxpool_3a = nn.MaxPool2d(3, stride=2)
+        self.conv2d_3b = BasicConv2d(64, 80, kernel_size=1, stride=1)
+        self.conv2d_4a = BasicConv2d(80, 192, kernel_size=3, stride=1)
+        self.maxpool_5a = nn.MaxPool2d(3, stride=2)
+        self.mixed_5b = Mixed_5b()
+        self.repeat = nn.Sequential(
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17),
+            Block35(scale=0.17)
+        )
+        self.mixed_6a = Mixed_6a()
+        self.repeat_1 = nn.Sequential(
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10),
+            Block17(scale=0.10)
+        )
+        self.mixed_7a = Mixed_7a()
+        self.repeat_2 = nn.Sequential(
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20),
+            Block8(scale=0.20)
+        )
+        self.block8 = Block8(noReLU=True)
+        self.conv2d_7b = BasicConv2d(2080, 1536, kernel_size=1, stride=1)
+        self.avgpool_1a = nn.AvgPool2d(8, count_include_pad=False)
+        self.last_linear = nn.Linear(1536, num_classes)
+
+    def features(self, input):
+        x = self.conv2d_1a(input)
+        x = self.conv2d_2a(x)
+        x = self.conv2d_2b(x)
+        x = self.maxpool_3a(x)
+        x = self.conv2d_3b(x)
+        x = self.conv2d_4a(x)
+        x = self.maxpool_5a(x)
+        x = self.mixed_5b(x)
+        x = self.repeat(x)
+        x = self.mixed_6a(x)
+        x = self.repeat_1(x)
+        x = self.mixed_7a(x)
+        x = self.repeat_2(x)
+        x = self.block8(x)
+        x = self.conv2d_7b(x)
+        return x
+
+    def logits(self, features):
+        x = self.avgpool_1a(features)
+        x = x.view(x.size(0), -1)
+        x = self.last_linear(x) 
+        return x
+
+    def forward(self, input):
+        x = self.features(input)
+        x = self.logits(x)
+        return x
+    
+    
+    
+class ResNetDenseFC(nn.Module):
+
+    def __init__(self, block, layers, num_classes=1000, load_resnet='resnet18', zero_first_center=False):
+        self.zero_first_center = zero_first_center
+        self.inplanes = 64
+        super(ResNetDenseFC, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.maxpool8 = nn.MaxPool2d(8, stride=8)
+        self.maxpool4 = nn.MaxPool2d(4, stride=4)
+        self.maxpool2 = nn.MaxPool2d(2, stride=2)
+        
+        self.project = nn.Conv2d(            
+            960, num_classes, 
+            kernel_size=(1, 1), stride=(1, 1), padding=(0, 0),
+            bias=True)
+        self.bn2 = nn.BatchNorm2d(num_classes)
+
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+                
+        if load_resnet is not None:
+            resnet = resnets[load_resnet]()
+            keys = set(self.state_dict().keys())
+            state_dict = self.state_dict()
+            state_dict.update(dict([(k, v) for (k, v) in resnet.state_dict().items() if k in keys]))
+            self.load_state_dict(state_dict)        
+        
+
+    def _make_layer(self, block, planes, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        if self.zero_first_center:
+            self.state_dict()['conv1.weight'][:, :, 3, 3] = 0.0
+        
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x1 = self.layer1(x)
+        x2 = self.layer2(x1)
+        x3 = self.layer3(x2)
+        x4 = self.layer4(x3)
+
+        x1 = self.maxpool8(x1)
+        x2 = self.maxpool4(x2)
+        x3 = self.maxpool2(x3)
+
+        x = torch.cat([x1, x2, x3, x4], dim=1)
+
+        x = self.project(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+        x = self.avgpool(x)
+
+        return x.squeeze()
+    
+    
+class ResNetDense(nn.Module):
+
+    def __init__(self, block, layers, num_classes=1000, load_resnet='resnet18'):
+        self.inplanes = 64
+        super(ResNetDense, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.maxpool8 = nn.MaxPool2d(8, stride=8)
+        self.maxpool4 = nn.MaxPool2d(4, stride=4)
+        self.maxpool2 = nn.MaxPool2d(2, stride=2)
+        
+        self.fc_new = nn.Linear(960, num_classes)
+
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+                
+        if load_resnet is not None:
+            resnet = resnets[load_resnet]()
+            keys = set(self.state_dict().keys())
+            state_dict = self.state_dict()
+            state_dict.update(dict([(k, v) for (k, v) in resnet.state_dict().items() if k in keys]))
+            self.load_state_dict(state_dict)        
+        
+
+    def _make_layer(self, block, planes, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x1 = self.layer1(x)
+        x2 = self.layer2(x1)
+        x3 = self.layer3(x2)
+        x4 = self.layer4(x3)
+
+        x1 = self.maxpool8(x1)
+        x2 = self.maxpool4(x2)
+        x3 = self.maxpool2(x3)
+
+        x = torch.cat([x1, x2, x3, x4], dim=1)
+        x = self.avgpool(x)
+        x = self.fc_new(x.squeeze())
+
+        return x

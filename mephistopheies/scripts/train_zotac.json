@@ -1,6 +1,6 @@
 {
     "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train.tsv",
-    "train_list_pseudo_npz": "/home/mephistopheies/storage2/data/camera-model-id/pseudo_labels/resnet34fc__256_pretrained_random_aug_kaggle_10__phase1",
+    "train_list_pseudo_npz": null,
     "val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
     "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_zotac/",
         
@@ -9,15 +9,15 @@
     "crop_center_size": 1520,
     "crop_size": 256,
     "step_crop_val": 128,
-    "n_crops_train": 10,
+    "n_crops_train": 14,
     "n_crops_search_train": null,
-    "batch_size_train": 15,
-    "batch_size_val": 10,
-    "workers": 4,
+    "batch_size_train": 11,
+    "batch_size_val": 15,  
+    "workers": 4,  
     "n_epoches": 1000, 
         
     "n_classes": 10,
-    "model_type": "resnet34X_pretrained_maxpool",
+    "model_type": "ResNetDenseFC34_pretrained_zfc",
                 
     "optim_type": "sgd",
     "learning_rate": 0.1,

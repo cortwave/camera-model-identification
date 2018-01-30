@@ -36,7 +36,8 @@ import torchvision.models as models
 
 from kaggle_camera_model_id_lib.utils import PechkaBot, ImageList, NpzFolder, NCrops, MultiDataset
 from kaggle_camera_model_id_lib.models import VggHead, StyleVggHead, IEEEfcn, ResNetFC, ResNetX, FatNet1
-from kaggle_camera_model_id_lib.models import InceptionResNetV2fc, InceptionResNetV2fcSmall
+from kaggle_camera_model_id_lib.models import InceptionResNetV2fc, InceptionResNetV2fcSmall, InceptionResNetV2
+from kaggle_camera_model_id_lib.models import ResNetDense, ResNetDenseFC
 from kaggle_camera_model_id_lib.utils import jpg_compress, equalize_v_hist, hsv_convert
 from kaggle_camera_model_id_lib.utils import scale_crop_pad, gamma_correction
 from kaggle_camera_model_id_lib.utils import patch_quality_dich, n_random_crops, n_pseudorandom_crops
@@ -152,11 +153,31 @@ model_factory = {
         models.resnet.Bottleneck, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet50'),
     'FatNet1': lambda n_classes: FatNet1(n_classes),
     'resnet34X_pretrained_maxpool': lambda n_classes: ResNetX(
-        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34', pool_type='max')
+        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34', pool_type='max'),
+    'resnet50X_pretrained_maxpool': lambda n_classes: ResNetX(
+        models.resnet.Bottleneck, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet50', pool_type='max'),
+    'InceptionResNetV2': lambda n_classes: InceptionResNetV2(num_classes=n_classes),
+    'ResNetDense34_pretrained': lambda n_classes: ResNetDense(
+        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34'),
+    'ResNetDenseFC34_pretrained': lambda n_classes: ResNetDenseFC(
+        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34', 
+        zero_first_center=False),
+    'ResNetDenseFC34_pretrained_zfc': lambda n_classes: ResNetDenseFC(
+        models.resnet.BasicBlock, [3, 4, 6, 3], num_classes=n_classes, load_resnet='resnet34', 
+        zero_first_center=True)
 }
 
+
+def create_CELoss(prms):
+    if prms is None:
+        return nn.CrossEntropyLoss()
+    if 'weight' in prms:
+        prms['weight'] = torch.FloatTensor(prms['weight'])
+    return nn.CrossEntropyLoss(**prms)
+
+
 criterion_factory = {
-    'CrossEntropyLoss': lambda prms: nn.CrossEntropyLoss(),
+    'CrossEntropyLoss': lambda prms: create_CELoss(prms),
     'MultiMarginLoss': lambda prms: nn.MultiMarginLoss(**prms)
 }
 
@@ -382,7 +403,6 @@ if __name__ == '__main__':
         del(checkpoint)
         log('model loaded: %s' % model_path)
     model = model.cuda()
-    
     
     criterion = criterion_factory[criterion_type](criterion_params)
     criterion = criterion.cuda()
