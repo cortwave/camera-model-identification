@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 Parallel(n_jobs=4)(delayed(load_image)(line.strip(), extra_name) for line in tqdm(f.readlines()))
 
     with open(f'../../extra_data/flickr_images/good_jpgs', 'r') as f:
-        for line in f.readlines():
+        for line in tqdm(f.readlines(), desc='images copying...'):
             line = line.strip()
             _, name, base_name = line.split('/')
             real_name = models_dict[name]
