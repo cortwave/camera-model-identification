@@ -8,14 +8,16 @@ from tqdm import tqdm
 import numpy as np
 from joblib import Parallel, delayed
 
-def crop_center(img,crop=512):
+
+def crop_center(img, crop=512):
     if img.shape[0] > crop or img.shape[1] > crop:
-        y,x = img.shape[:2]
-        startx = x//2-(crop//2)
-        starty = y//2-(crop//2)
-        return img[starty:starty+crop,startx:startx+crop, :]
+        y, x = img.shape[:2]
+        startx = x // 2 - (crop // 2)
+        starty = y // 2 - (crop // 2)
+        return img[starty:starty + crop, startx:startx + crop, :]
     else:
         return img
+
 
 def load(image):
     try:
@@ -26,8 +28,6 @@ def load(image):
     if img.shape == (2,):
         img = img[0]
     return crop_center(img)
-
-
 
 
 def load_cached(idx, img, limit):

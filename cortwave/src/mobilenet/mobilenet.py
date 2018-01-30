@@ -90,7 +90,7 @@ class MobileNetV2(nn.Module):
                 input_channel = output_channel
         # building last several layers
         self.features.append(conv_1x1_bn(input_channel, self.last_channel))
-        self.features.append(nn.AvgPool2d(input_size / 32))
+        self.features.append(nn.AvgPool2d(input_size // 32))
         # make it nn.Sequential
         self.features = nn.Sequential(*self.features)
 
