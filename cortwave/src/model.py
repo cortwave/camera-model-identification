@@ -189,6 +189,8 @@ class Model(object):
                 elif patience and epoch - lr_reset_epoch > patience and min(
                         valid_losses[-patience:]) > self.best_valid_loss:
                     lr /= 10
+                    if patience < 1e-8:
+                        exit(0)
                     lr_reset_epoch = epoch
                     optimizer = self._init_optimizer()
             except KeyboardInterrupt:

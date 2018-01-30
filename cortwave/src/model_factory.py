@@ -1,6 +1,7 @@
 from torchvision.models import vgg19, squeezenet1_1, resnet152, resnet34, resnet50, resnet101, \
     densenet121, densenet161, densenet169, densenet201, resnet18
 from inception.inception import inception_v3
+from mobilenet.mobilenet import mobilenetv2
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
 from widenet.widenet import Widenet
@@ -89,6 +90,13 @@ def get_model(num_classes, architecture):
                                              pretrained=False,
                                              test_time_pool=False)
             model.classifier = nn.Conv2d(model.in_chs, num_classes, kernel_size=1, bias=True)
+    elif architecture == "mobilenetv2":
+        model = mobilenetv2(pretrained=True).cuda()
+        model.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(model.last_channel, num_classes),
+        )
+        model.init_classifier_weights()
     if model is None:
         raise ValueError('Unknown architecture: ', architecture)
     return nn.DataParallel(model).cuda()
