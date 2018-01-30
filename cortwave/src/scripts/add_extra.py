@@ -36,5 +36,9 @@ if __name__ == '__main__':
             line = line.strip()
             _, name, base_name = line.split('/')
             real_name = models_dict[name]
-            shutil.copy(f'../../extra_data/flickr_images/{name}/{base_name}', f'../../data/train/{real_name}/{base_name}')
-
+            dest = f'../../data/train/{real_name}/{base_name}'
+            if not os.path.exists(dest):
+                try:
+                    shutil.copy(f'../../extra_data/flickr_images/{name}/{base_name}', dest)
+                except Exception:
+                    print('missed file: ', line)
