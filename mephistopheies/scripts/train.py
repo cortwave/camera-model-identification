@@ -236,6 +236,7 @@ if __name__ == '__main__':
     criterion_params = cfg['criterion_params']
     n_crops_search_train = cfg['n_crops_search_train']
     train_list_pseudo_npz = cfg['train_list_pseudo_npz']
+    train_list_flickr = cfg['train_list_flickr']
     
     
     to_tensor = transforms.ToTensor()
@@ -276,15 +277,15 @@ if __name__ == '__main__':
     
     
     def aug_train(img):
-        if min(img.size) > crop_center_size:
-            return random_flip(random_crop(center_crop(img)))
-        img_np = np.array(img)
-        if img_np.shape[0] < crop_center_size and img_np.shape[1] > crop_center_size:
-            n = np.random.randint(img_np.shape[1] - crop_center_size)
-            return random_flip(random_crop(Image.fromarray(img_np[:, n:(n + crop_center_size), :])))
-        if img_np.shape[1] < crop_center_size and img_np.shape[0] > crop_center_size:
-            n = np.random.randint(img_np.shape[0] - crop_center_size)
-            return random_flip(random_crop(Image.fromarray(img_np[n:(n + crop_center_size), :, :])))
+        #if min(img.size) > crop_center_size:
+        #    return random_flip(random_crop(center_crop(img)))
+        #img_np = np.array(img)
+        #if img_np.shape[0] < crop_center_size and img_np.shape[1] > crop_center_size:
+        #    n = np.random.randint(img_np.shape[1] - crop_center_size)
+        #    return random_flip(random_crop(Image.fromarray(img_np[:, n:(n + crop_center_size), :])))
+        #if img_np.shape[1] < crop_center_size and img_np.shape[0] > crop_center_size:
+        #    n = np.random.randint(img_np.shape[0] - crop_center_size)
+        #    return random_flip(random_crop(Image.fromarray(img_np[n:(n + crop_center_size), :, :])))
         return random_flip(random_crop(img))
     
     def aug_train_fscore(img):
@@ -345,6 +346,7 @@ if __name__ == '__main__':
             transforms.Lambda(lambda ylist: torch.LongTensor(ylist))
         ]))
     
+    train_ds_list = []
     if train_list_pseudo_npz is not None:        
         ds_train_pseudo = NpzFolder(
             train_list_pseudo_npz,
@@ -359,8 +361,26 @@ if __name__ == '__main__':
                 transforms.Lambda(lambda y: [y]*n_crops_train),
                 transforms.Lambda(lambda ylist: torch.LongTensor(ylist))
             ]))
-        ds_train = MultiDataset([ds_train, ds_train_pseudo])
+        train_ds_list.append(ds_train_pseudo)
         log(' -> pseudo dataset is loaded')
+        
+    if train_list_flickr is not None:
+        ds_train_flickr = ImageList(
+            train_list_flickr,
+            transform=transform_train,
+            target_transform=transforms.Compose([
+                transforms.Lambda(lambda y: [y]*n_crops_train),
+                transforms.Lambda(lambda ylist: torch.LongTensor(ylist))
+            ]))
+        train_ds_list.append(ds_train_flickr)
+        log(' -> flickr dataset is loaded')
+        
+        
+    if len(train_ds_list) > 0:
+        train_ds_list = [ds_train] + train_ds_list
+        ds_train = MultiDataset(train_ds_list)
+        log(' -> MultiDataset is created: %i' % len(train_ds_list))
+    
     
     train_loader = torch.utils.data.DataLoader(    
         ds_train,
@@ -370,24 +390,25 @@ if __name__ == '__main__':
         pin_memory=True)
     log('train_loader.size: %i' % len(train_loader.dataset.imgs))    
     
-    ds_val = NpzFolder(
-        val_path,
-        transform=transforms.Compose([
-            transforms.Lambda(lambda img: NCrops(img, crop_size=crop_size, step=step_crop_val)),
-            transforms.Lambda(lambda crops: torch.stack([normalize(to_tensor(aug_optional_val(Image.fromarray(crop)))) 
-                                                         for crop in crops]))
-        ]),
-        target_transform=transforms.Compose([
-            transforms.Lambda(lambda y: [y]*int(np.floor(1 + (512 - crop_size)/step_crop_val))**2),
-            transforms.Lambda(lambda ylist: torch.LongTensor(ylist))
-        ]))
-    val_loader = torch.utils.data.DataLoader(    
-        ds_val,
-        batch_size=batch_size_val, 
-        shuffle=False,
-        num_workers=workers, 
-        pin_memory=True)
-    log('val_loader.size: %i' % len(val_loader.dataset.imgs))
+    if val_path is not None:
+        ds_val = NpzFolder(
+            val_path,
+            transform=transforms.Compose([
+                transforms.Lambda(lambda img: NCrops(img, crop_size=crop_size, step=step_crop_val)),
+                transforms.Lambda(lambda crops: torch.stack([normalize(to_tensor(aug_optional_val(Image.fromarray(crop)))) 
+                                                             for crop in crops]))
+            ]),
+            target_transform=transforms.Compose([
+                transforms.Lambda(lambda y: [y]*int(np.floor(1 + (512 - crop_size)/step_crop_val))**2),
+                transforms.Lambda(lambda ylist: torch.LongTensor(ylist))
+            ]))
+        val_loader = torch.utils.data.DataLoader(    
+            ds_val,
+            batch_size=batch_size_val, 
+            shuffle=False,
+            num_workers=workers, 
+            pin_memory=True)
+        log('val_loader.size: %i' % len(val_loader.dataset.imgs))
     
     
     model = model_factory[model_type](n_classes)
@@ -445,8 +466,11 @@ if __name__ == '__main__':
         model.train()    
         loss_train_batch, acc_train_batch = train_pass(train_loader, model, criterion, optimizer)
 
-        model.eval()
-        loss_val_batch, acc_val_batch = val_pass(val_loader, model, criterion)
+        if val_path is not None:
+            model.eval()
+            loss_val_batch, acc_val_batch = val_pass(val_loader, model, criterion)
+        else:
+            loss_val_batch, acc_val_batch = 0.0, 0.0
 
         loss_train.append(loss_train_batch)
         acc_train.append(acc_train_batch)
@@ -470,7 +494,7 @@ if __name__ == '__main__':
             'cfg': cfg
         }, os.path.join(out_dir, 'checkpoint.tar'))
 
-        if acc_val[-1] == np.max(acc_val):
+        if val_path is not None and acc_val[-1] == np.max(acc_val):
             log('Best found!')
             copyfile(
                 os.path.join(out_dir, 'checkpoint.tar'),

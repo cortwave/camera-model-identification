@@ -1,15 +1,17 @@
 {
-    "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train.tsv",
+    "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train_all.tsv",
     "train_list_pseudo_npz": null,
-    "val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
+    "train_list_flickr": "/home/mephistopheies/storage2/data/camera-model-id/extra_data/train_flickr_top300.tsv",
+    "__val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
+    "val_path": null,
     "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_zotac/",
         
     "model_path": null,
         
-    "crop_center_size": 1520,
+    "crop_center_size": 3072,
     "crop_size": 256,
     "step_crop_val": 128,
-    "n_crops_train": 14,
+    "n_crops_train": 13,
     "n_crops_search_train": null,
     "batch_size_train": 11,
     "batch_size_val": 15,  
@@ -22,7 +24,7 @@
     "optim_type": "sgd",
     "learning_rate": 0.1,
     "momentum": 0.9,
-    "lr_scheduler_step_size": 50,
+    "lr_scheduler_step_size": 25,
     "lr_scheduler_gamma": 0.5,
     "weight_decay": 0.0,
     
