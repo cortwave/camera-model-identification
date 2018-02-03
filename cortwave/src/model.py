@@ -163,7 +163,6 @@ class Model(object):
 
                     iter_loss = 0
                     for input1, input2, target in zip(inputs_0_chunks, inputs_1_chunks, targets_chunks):
-                        print(input2)
                         outputs = model(input1, input2)
                         loss = criterion(outputs, target)
                         loss /= batch_size
