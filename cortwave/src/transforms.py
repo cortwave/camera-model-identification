@@ -9,7 +9,7 @@ size = 224
 
 
 def transform(img, manip, clazz):
-    ops = []
+    ops = [RandomCrop(size * 2, strict=False)]
     if not manip:
         ops.append(
             RandomSelect([
