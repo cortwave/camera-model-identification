@@ -1,6 +1,5 @@
 import torch.utils.data as data
 import pandas as pd
-from skimage.io import imread
 import cv2
 import os
 import glob
@@ -20,14 +19,12 @@ def crop_center(img, crop=512):
 
 
 def load(image):
-    try:
-        img = imread(image)
-    except Exception:
-        img = cv2.imread(image)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.imread(image)
     if img.shape == (2,):
         img = img[0]
-    return crop_center(img)
+    if img.shape[0] < img.shape[1]:
+        img = np.rot90(img)
+    return img
 
 
 def load_cached(idx, img, limit):
@@ -70,10 +67,10 @@ class Dataset(data.Dataset):
     def __getitem__(self, idx):
         idx = idx % len(self.images)
         x = self.images[idx] if idx < self.cached_limit else load(self.images[idx])
+        y = self.labels[idx]
         if self.transform:
             manip = 'manip' in self.images_names[idx]
-            x = self.transform(x, manip)
-        y = self.labels[idx]
+            x = self.transform(x, manip, y)
         return x, y
 
 

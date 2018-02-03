@@ -8,7 +8,7 @@ from skimage.transform import rotate
 size = 128
 
 
-def transform(img, manip):
+def transform(img, manip, clazz):
     ops = []
     if not manip:
         ops.append(
@@ -18,7 +18,12 @@ def transform(img, manip):
                 RandomJPG((70, 90), 0.5),
             ])
         )
-    for o in [RandomCrop(size), transforms.ToTensor()]:
+    for o in [RandomCrop(size)]:
+        ops.append(o)
+    # classes HTC-1-M7, Samsung-Galaxy-Note3, iPhone-6 can be rotated
+    if clazz in [0, 5, 9]:
+        ops.append(RandomRotate([0, 90, 180, 270]))
+    for o in [RandomHFlip(), RandomVFlip(), transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
     return ops(img)
@@ -35,6 +40,8 @@ def valid_augm():
 def test_augm():
     return transforms.Compose([
         RandomCrop(size),
+        RandomHFlip(),
+        RandomVFlip(),
         transforms.ToTensor(),
     ])
 
