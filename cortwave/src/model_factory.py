@@ -2,7 +2,6 @@ from torchvision.models import vgg19, squeezenet1_1, resnet152, resnet34, resnet
     densenet121, densenet161, densenet169, densenet201, resnet18
 from inception.inception import inception_v3
 from mobilenet.mobilenet import mobilenetv2
-from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
 import torch
 from widenet.widenet import Widenet
@@ -18,7 +17,27 @@ def get_model(num_classes, architecture):
     if architecture == 'widenet':
         model = Widenet(num_classes).cuda()
     elif architecture == 'inceptionresnetv2':
-        model = pretrainedmodels.__dict__[architecture](num_classes=num_classes, pretrained=False).cuda()
+        model = pretrainedmodels.__dict__[architecture](num_classes=num_classes, pretrained=False)
+        features = nn.Sequential(
+            model.conv2d_1a,
+            model.conv2d_2a,
+            model.conv2d_2b,
+            model.maxpool_3a,
+            model.conv2d_3b,
+            model.conv2d_4a,
+            model.maxpool_5a,
+            model.mixed_5b,
+            model.repeat,
+            model.mixed_6a,
+            model.repeat_1,
+            model.mixed_7a,
+            model.repeat_2,
+            model.block8,
+            model.conv2d_7b,
+            model.avgpool_1a
+        )
+        classifier = nn.Linear(1536 + 1, num_classes)
+        model = ManipModel(features, classifier).cuda()
     elif 'vgg' in architecture:
         if architecture == 'vgg19':
             model = vgg19(pretrained=True).cuda()
@@ -33,20 +52,9 @@ def get_model(num_classes, architecture):
                 nn.Linear(4096, num_classes),
             )
     elif 'inception_v3' in architecture:
-        model = inception_v3(pretrained=False, aux_logits=False, num_classes=num_classes).cuda()
+        model = inception_v3(pretrained=False, aux_logits=False, num_classes=num_classes)
     elif "seinception" in architecture:
         model = SEInception3(num_classes=num_classes).cuda()
-    elif "seresnet" in architecture:
-        if architecture == 'seresnet18':
-            model = se_resnet18(num_classes).cuda()
-        if architecture == 'seresnet34':
-            model = se_resnet34(num_classes).cuda()
-        if architecture == 'seresnet50':
-            model = se_resnet50(num_classes).cuda()
-        if architecture == 'seresnet101':
-            model = se_resnet101(num_classes).cuda()
-        if architecture == 'seresnet152':
-            model = se_resnet152(num_classes).cuda()
     elif "resnet" in architecture:
         if architecture == 'resnet18':
             model = resnet18(pretrained=True).cuda()
@@ -59,8 +67,19 @@ def get_model(num_classes, architecture):
         elif architecture == 'resnet152':
             model = resnet152(pretrained=True).cuda()
         if model is not None:
-            model.fc = nn.Linear(model.fc.in_features, num_classes).cuda()
-            model.avgpool = nn.AdaptiveAvgPool2d(1)
+            features = nn.Sequential(
+                model.conv1,
+                model.bn1,
+                model.relu,
+                model.maxpool,
+                model.layer1,
+                model.layer2,
+                model.layer3,
+                model.layer4,
+                nn.AdaptiveAvgPool2d(1)
+            )
+            classifier = nn.Linear(model.fc.in_features + 1, num_classes).cuda()
+            model = ManipModel(features, classifier).cuda()
     elif "densenet" in architecture:
         if architecture == 'densenet121':
             model = densenet121(pretrained=True).cuda()
@@ -71,7 +90,13 @@ def get_model(num_classes, architecture):
         elif architecture == "densenet201":
             model = densenet201(pretrained=True).cuda()
         if model is not None:
-            model.classifier = nn.Linear(model.classifier.in_features, num_classes).cuda()
+            features = nn.Sequential(
+                model.features,
+                nn.ReLU(inplace=True),
+                nn.AvgPool2d(kernel_size=7)
+            )
+            classifier = nn.Linear(model.classifier.in_features + 1, num_classes)
+            model = ManipModel(features, classifier).cuda()
     elif "squeezenet" in architecture:
         if architecture == "squeezenet1_1":
             model = squeezenet1_1(pretrained=True).cuda()
