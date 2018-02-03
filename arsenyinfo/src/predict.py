@@ -1,15 +1,19 @@
 from glob import glob
 from functools import reduce, partial
+from os import path
 
 import pandas as pd
 from keras.applications.inception_resnet_v2 import preprocess_input
+from keras.applications.mobilenet import relu6, DepthwiseConv2D
 from keras.models import load_model
 from fire import Fire
 from tqdm import tqdm
 import cv2
 import numpy as np
+from glog import logger
 
 from src.aug import jpg_compress, gamma_correction
+
 
 def _crop(img, shape, option):
     margin = 512 - shape
@@ -24,13 +28,13 @@ def _crop(img, shape, option):
     return crops[option](img)
 
 
-def get_test_files():
+def get_test_files(shape):
     files = glob('data/test/*')
     for f in files:
         img = cv2.imread(f)
         name = f.split('/')[-1]
         safe = 'manip' in name
-        crops = batch_aug([_crop(img, 384, x) for x in range(5)], safe=safe)
+        crops = batch_aug([_crop(img, shape, x) for x in range(5)], safe=safe)
         crops = preprocess_input(crops.astype('float32'))
         yield name, crops
 
@@ -51,27 +55,36 @@ def batch_aug(imgs, safe=True):
     return batch
 
 
-def predict(model_name):
+def describe_model(m):
+    logger.info(f'File {m} created: {path.getctime(m)}')
+    logger.info(f'File {m} modified: {path.getmtime(m)}')
+    logger.info(f'File {m} accessed: {path.getatime(m)}')
+    return m
+
+
+def predict(model_name, shape=384):
     classes = ['HTC-1-M7', 'LG-Nexus-5x', 'Motorola-Droid-Maxx', 'Motorola-Nexus-6', 'Motorola-X',
                'Samsung-Galaxy-Note3', 'Samsung-Galaxy-S4', 'Sony-NEX-7', 'iPhone-4s', 'iPhone-6']
 
+    load_model_ = partial(load_model, custom_objects={'relu6': relu6,
+                                                      'DepthwiseConv2D': DepthwiseConv2D})
+
     models = glob(f'result/models/{model_name}*.h5')
     result = []
-    models = [load_model(model, compile=False) for model in models]
+    models = [load_model_(model, compile=False) for model in map(describe_model, models)]
 
     probas = []
 
-    for name, batch in tqdm(get_test_files(), desc='predictions processed', total=len(glob('data/test/*'))):
+    for name, batch in tqdm(get_test_files(shape=shape), desc='predictions processed', total=len(glob('data/test/*'))):
         pred = np.array(reduce(lambda x, y: x + y, [model.predict(batch) for model in models])).sum(axis=0)
         idx = pred.argmax()
         result.append({'fname': name, 'camera': classes[idx]})
 
-        proba = {k:v for k, v in zip(classes, pred)}
+        proba = {k: v for k, v in zip(classes, pred)}
         proba['fname'] = name
         probas.append(proba)
 
     df = pd.DataFrame(result)
-    df.to_csv('result/submit.csv', index=False)
 
     unalt = df.fname.apply(lambda x: 'unalt' in x)
     manip = df.fname.apply(lambda x: 'manip' in x)
