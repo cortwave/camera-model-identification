@@ -23,7 +23,7 @@ def load(image):
     if img.shape == (2,):
         img = img[0]
     if img.shape[0] < img.shape[1]:
-        img = np.rot90(img)
+        img = np.rot90(img).copy()
     return img
 
 
