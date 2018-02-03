@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from skimage.transform import rotate
 
-size = 128
+size = 224
 
 
 def transform(img, manip, clazz):

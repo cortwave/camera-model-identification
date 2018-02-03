@@ -35,7 +35,7 @@ def load_cached(idx, img, limit):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, n_fold, cached_part=1.0, transform=None, train=True):
+    def __init__(self, n_fold, cached_part=0.0, transform=None, train=True):
         if train:
             n_folds = len(glob.glob('../data/fold_*.csv'))
             folds = list(range(n_folds))

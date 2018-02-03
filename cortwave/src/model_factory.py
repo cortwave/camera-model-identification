@@ -91,7 +91,7 @@ def get_model(num_classes, architecture):
                                              test_time_pool=False)
             model.classifier = nn.Conv2d(model.in_chs, num_classes, kernel_size=1, bias=True)
     elif architecture == "mobilenetv2":
-        model = mobilenetv2(pretrained=True).cuda()
+        model = mobilenetv2(pretrained=False).cuda()
         model.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(model.last_channel, num_classes),
