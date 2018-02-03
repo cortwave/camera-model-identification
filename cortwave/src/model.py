@@ -156,13 +156,15 @@ class Model(object):
                     batches_count += 1
                     inputs, targets = variable(inputs), variable(targets)
                     targets = long_tensor(targets)
-                    inputs_chunks = inputs.chunk(iter_size)
+                    inputs_0_chunks = inputs[0].chunk(iter_size)
+                    inputs_1_chunks = inputs[1].chunk(iter_size)
                     targets_chunks = targets.chunk(iter_size)
                     optimizer.zero_grad()
 
                     iter_loss = 0
-                    for input, target in zip(inputs_chunks, targets_chunks):
-                        outputs = model(input)
+                    for input1, input2, target in zip(inputs_0_chunks, inputs_1_chunks, targets_chunks):
+                        print(input2)
+                        outputs = model(input1, input2)
                         loss = criterion(outputs, target)
                         loss /= batch_size
                         iter_loss += loss.data[0]

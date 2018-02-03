@@ -16,3 +16,6 @@ def variable(x, volatile=False):
 
 def long_tensor(x):
     return x.type(torch.LongTensor).cuda()
+
+def float_tensor(x):
+    return x.type(torch.FloatTensor).cuda()

@@ -91,7 +91,8 @@ class TestDataset(data.Dataset):
         img_name = self.images[idx]
         img = load(img_name)
         if self.transform:
-            img = self.transform(img)
+            manip = 'manip' in img_name
+            img = self.transform(img, manip)
         return img, os.path.basename(img_name)
 
 

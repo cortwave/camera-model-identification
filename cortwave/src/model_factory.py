@@ -4,6 +4,7 @@ from inception.inception import inception_v3
 from mobilenet.mobilenet import mobilenetv2
 from se_net.se_resnet import se_resnet18, se_resnet34, se_resnet50, se_resnet101, se_resnet152
 import torch.nn as nn
+import torch
 from widenet.widenet import Widenet
 from dpn import model_factory as dpn_factory
 from se_net.se_inception import SEInception3
@@ -91,12 +92,27 @@ def get_model(num_classes, architecture):
                                              test_time_pool=False)
             model.classifier = nn.Conv2d(model.in_chs, num_classes, kernel_size=1, bias=True)
     elif architecture == "mobilenetv2":
-        model = mobilenetv2(pretrained=False).cuda()
-        model.classifier = nn.Sequential(
+        model = mobilenetv2(pretrained=False)
+        features = model.features
+        classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(model.last_channel, num_classes),
+            nn.Linear(model.last_channel + 1, num_classes),
         )
-        model.init_classifier_weights()
+        model = ManipModel(features, classifier).cuda()
     if model is None:
         raise ValueError('Unknown architecture: ', architecture)
     return nn.DataParallel(model).cuda()
+
+
+class ManipModel(nn.Module):
+    def __init__(self, features, classifier):
+        super(ManipModel, self).__init__()
+        self.features = features
+        self.classifier = classifier
+
+    def forward(self, x, is_manip):
+        features_result = self.features(x)
+        features_result = features_result.view(x.size()[0], -1)
+        classifier_input = torch.cat((features_result, is_manip), -1)
+        out = self.classifier(classifier_input)
+        return out

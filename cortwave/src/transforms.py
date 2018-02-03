@@ -3,6 +3,8 @@ from io import BytesIO
 from PIL import Image
 import cv2
 import numpy as np
+import torch
+from pt_util import float_tensor
 from skimage.transform import rotate
 
 size = 224
@@ -10,14 +12,17 @@ size = 224
 
 def transform(img, manip, clazz):
     ops = [RandomCrop(size * 2, strict=False)]
+    manipulated = manip
     if not manip:
-        ops.append(
-            RandomSelect([
-                RandomResize((0.5, 0.8, 1.5, 2.0), 0.5),
-                RandomGamma((0.8, 1.2), 0.5),
-                RandomJPG((70, 90), 0.5),
-            ])
-        )
+        if np.random.random() > 0.5:
+            manipulated = True
+            ops.append(
+                RandomSelect([
+                    RandomResize((0.5, 0.8, 1.5, 2.0), 1.0),
+                    RandomGamma((0.8, 1.2), 1.0),
+                    RandomJPG((70, 90), 1.0),
+                ])
+            )
     for o in [RandomCrop(size)]:
         ops.append(o)
     # classes HTC-1-M7, Samsung-Galaxy-Note3, iPhone-6 can be rotated
@@ -26,7 +31,7 @@ def transform(img, manip, clazz):
     for o in [RandomHFlip(), RandomVFlip(), transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
-    return ops(img)
+    return ops(img), torch.from_numpy(np.array([float(manipulated)])).type(torch.FloatTensor)
 
 
 def train_augm():
@@ -37,13 +42,19 @@ def valid_augm():
     return transform
 
 
-def test_augm():
-    return transforms.Compose([
+def test_transform(img, manip):
+    t = transforms.Compose([
         RandomCrop(size),
         RandomHFlip(),
         RandomVFlip(),
         transforms.ToTensor(),
     ])
+    res = t(img)
+    return res, torch.from_numpy(np.array([float(manip)])).type(torch.FloatTensor)
+
+
+def test_augm():
+    return test_transform
 
 
 class ExtractFFTNoise:
