@@ -17,7 +17,7 @@ def fix_and_check(x):
         f.write(data)
 
     img = cv2.imread(x)
-    if img is None or img[-10:, :, :].std() == 0:
+    if img is None or img[-5:, :, :].std() == 0:
         logger.info(f'{x} is removed')
         remove(x)
 
