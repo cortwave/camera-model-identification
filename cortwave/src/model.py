@@ -28,12 +28,13 @@ def validate(model, criterion, valid_loader, validation_size, batch_size, iter_s
         inputs = variable(inputs, volatile=True)
         targets = variable(targets)
         targets = long_tensor(targets)
-        inputs_chunks = inputs.chunk(iter_size)
+        inputs0_chunks = inputs[0].chunk(iter_size)
+        inputs1_chunks = inputs[1].chunk(iter_size)
         targets_chunks = targets.chunk(iter_size)
         loss = 0
         acc = 0
-        for input, target in zip(inputs_chunks, targets_chunks):
-            outputs = model(input)
+        for input1, input2, target in zip(inputs0_chunks, inputs1_chunks, targets_chunks):
+            outputs = model(input1, input2)
             loss_iter = criterion(outputs, target)
             loss_iter /= batch_size
             loss += loss_iter.data[0]
