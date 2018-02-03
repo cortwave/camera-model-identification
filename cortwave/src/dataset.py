@@ -18,24 +18,25 @@ def crop_center(img, crop=512):
         return img
 
 
-def load(image):
+def load(image, crop_central=False):
     img = cv2.imread(image)
     if img.shape == (2,):
         img = img[0]
     if img.shape[0] < img.shape[1]:
         img = np.rot90(img).copy()
-    return img
+    return crop_center(img) if crop_central else img
 
 
-def load_cached(idx, img, limit):
+def load_cached(idx, img, limit, crop_central):
     if idx < limit:
-        return load(img)
+        return load(img, crop_central)
     else:
         return img
 
 
 class Dataset(data.Dataset):
-    def __init__(self, n_fold, cached_part=0.0, transform=None, train=True):
+    def __init__(self, n_fold, cached_part=0.0, transform=None, train=True, crop_central=False):
+        self.crop_central = crop_central
         if train:
             n_folds = len(glob.glob('../data/fold_*.csv'))
             folds = list(range(n_folds))
@@ -53,7 +54,7 @@ class Dataset(data.Dataset):
         images_names = df[0].values
         self.images_names = images_names
         self.images = Parallel(n_jobs=8)(
-            delayed(load_cached)(idx, x, self.cached_limit) for idx, x in tqdm(enumerate(images_names),
+            delayed(load_cached)(idx, x, self.cached_limit, crop_central) for idx, x in tqdm(enumerate(images_names),
                                                                                total=len(images_names),
                                                                                desc='images loading'))
         labels = df[1].values
@@ -66,7 +67,7 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, idx):
         idx = idx % len(self.images)
-        x = self.images[idx] if idx < self.cached_limit else load(self.images[idx])
+        x = self.images[idx] if idx < self.cached_limit else load(self.images[idx], self.crop_central)
         y = self.labels[idx]
         if self.transform:
             manip = 'manip' in self.images_names[idx]
