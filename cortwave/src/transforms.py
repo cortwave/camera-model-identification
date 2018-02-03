@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from skimage.transform import rotate
 
-size = 128
+size = 224
 
 
-def transform(img, manip):
-    ops = []
+def transform(img, manip, clazz):
+    ops = [RandomCrop(size * 2, strict=False)]
     if not manip:
         ops.append(
             RandomSelect([
@@ -18,7 +18,12 @@ def transform(img, manip):
                 RandomJPG((70, 90), 0.5),
             ])
         )
-    for o in [RandomCrop(size), transforms.ToTensor()]:
+    for o in [RandomCrop(size)]:
+        ops.append(o)
+    # classes HTC-1-M7, Samsung-Galaxy-Note3, iPhone-6 can be rotated
+    if clazz in [0, 5, 9]:
+        ops.append(RandomRotate([0, 90, 180, 270]))
+    for o in [RandomHFlip(), RandomVFlip(), transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
     return ops(img)
@@ -35,8 +40,20 @@ def valid_augm():
 def test_augm():
     return transforms.Compose([
         RandomCrop(size),
+        RandomHFlip(),
+        RandomVFlip(),
         transforms.ToTensor(),
     ])
+
+
+class ExtractFFTNoise:
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        img -= cv2.GaussianBlur(img, (3, 3), 0)
+        img = np.stack([np.fft.fftshift(np.fft.fft2(img[:, :, c])) for c in range(3)], axis=-1)
+        return img
 
 
 class ExtractNoise:

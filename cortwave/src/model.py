@@ -50,11 +50,13 @@ def validate(model, criterion, valid_loader, validation_size, batch_size, iter_s
 
 class Model(object):
     def train(self, architecture, fold, lr, batch_size, epochs, iter_size, epoch_size=None, validation_size=None,
-              patience=4, optim="adam", ignore_prev_best_loss=False):
+              patience=4, optim="adam", ignore_prev_best_loss=False, cached_part=0.0, crop_central=False):
         train_loader, valid_loader, num_classes = get_loaders(batch_size,
                                                               train_transform=train_augm(),
                                                               valid_transform=valid_augm(),
-                                                              n_fold=fold)
+                                                              n_fold=fold,
+                                                              cached_part=cached_part,
+                                                              crop_central=crop_central)
         validation_size = len(valid_loader) * batch_size
         model = get_model(num_classes, architecture)
         criterion = CrossEntropyLoss(size_average=False)
@@ -189,6 +191,8 @@ class Model(object):
                 elif patience and epoch - lr_reset_epoch > patience and min(
                         valid_losses[-patience:]) > self.best_valid_loss:
                     lr /= 10
+                    if lr < 1e-8:
+                        exit(0)
                     lr_reset_epoch = epoch
                     optimizer = self._init_optimizer()
             except KeyboardInterrupt:

@@ -1,7 +1,9 @@
 {
-    "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train.tsv",
-    "train_list_pseudo_npz": "/home/mephistopheies/storage2/data/camera-model-id/pseudo_labels/resnet34fc__256_pretrained_random_aug_kaggle_10__phase1",
-    "val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
+    "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train_all.tsv",
+    "train_list_pseudo_npz": null,
+    "train_list_flickr": "/home/mephistopheies/storage2/data/camera-model-id/extra_data/train_flickr_top300.tsv",
+    "__val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
+    "val_path": null,
     "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_msi/",
         
     "model_path": null,
@@ -9,25 +11,28 @@
     "crop_center_size": 1520,
     "crop_size": 256,
     "step_crop_val": 128,
-    "n_crops_train": 7,
+    "n_crops_train": 9,
     "n_crops_search_train": null,
-    "batch_size_train": 15,
+    "batch_size_train": 12,
     "batch_size_val": 15,  
     "workers": 4,  
     "n_epoches": 1000, 
         
     "n_classes": 10,
-    "model_type": "resnet34fc_pretrained_maxpool",
+    "model_type": "resnet34fc_pretrained",
                 
     "optim_type": "sgd",
     "learning_rate": 0.1,
     "momentum": 0.9,
-    "lr_scheduler_step_size": 50,
+    "lr_scheduler_step_size": 25,
     "lr_scheduler_gamma": 0.5,
     "weight_decay": 0.0,
         
     "criterion_type": "CrossEntropyLoss",
     "criterion_params": null,
+    "__criterion_params": {
+        "weight": [1.1821972599552848, 1.7357957866601166, 1.0510765456244873, 1.0, 1.1448731210386747, 1.1321519137470488, 1.0638173325685056, 1.3515811679449026, 2.6925824035672519, 1.0907536796837267]
+    },        
     
     "do_random_aug_kaggle": true,
     "p_random_aug_kaggle_train": 1.0,

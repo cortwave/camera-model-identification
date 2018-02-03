@@ -1,6 +1,5 @@
 import torch.utils.data as data
 import pandas as pd
-from skimage.io import imread
 import cv2
 import os
 import glob
@@ -8,37 +7,36 @@ from tqdm import tqdm
 import numpy as np
 from joblib import Parallel, delayed
 
-def crop_center(img,crop=512):
+
+def crop_center(img, crop=512):
     if img.shape[0] > crop or img.shape[1] > crop:
-        y,x = img.shape[:2]
-        startx = x//2-(crop//2)
-        starty = y//2-(crop//2)
-        return img[starty:starty+crop,startx:startx+crop, :]
+        y, x = img.shape[:2]
+        startx = x // 2 - (crop // 2)
+        starty = y // 2 - (crop // 2)
+        return img[starty:starty + crop, startx:startx + crop, :]
     else:
         return img
 
-def load(image):
-    try:
-        img = imread(image)
-    except Exception:
-        img = cv2.imread(image)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+def load(image, crop_central=False):
+    img = cv2.imread(image)
     if img.shape == (2,):
         img = img[0]
-    return crop_center(img)
+    if img.shape[0] < img.shape[1]:
+        img = np.rot90(img).copy()
+    return crop_center(img) if crop_central else img
 
 
-
-
-def load_cached(idx, img, limit):
+def load_cached(idx, img, limit, crop_central):
     if idx < limit:
-        return load(img)
+        return load(img, crop_central)
     else:
         return img
 
 
 class Dataset(data.Dataset):
-    def __init__(self, n_fold, cached_part=1.0, transform=None, train=True):
+    def __init__(self, n_fold, cached_part=0.0, transform=None, train=True, crop_central=False):
+        self.crop_central = crop_central
         if train:
             n_folds = len(glob.glob('../data/fold_*.csv'))
             folds = list(range(n_folds))
@@ -56,7 +54,7 @@ class Dataset(data.Dataset):
         images_names = df[0].values
         self.images_names = images_names
         self.images = Parallel(n_jobs=8)(
-            delayed(load_cached)(idx, x, self.cached_limit) for idx, x in tqdm(enumerate(images_names),
+            delayed(load_cached)(idx, x, self.cached_limit, crop_central) for idx, x in tqdm(enumerate(images_names),
                                                                                total=len(images_names),
                                                                                desc='images loading'))
         labels = df[1].values
@@ -69,11 +67,11 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, idx):
         idx = idx % len(self.images)
-        x = self.images[idx] if idx < self.cached_limit else load(self.images[idx])
+        x = self.images[idx] if idx < self.cached_limit else load(self.images[idx], self.crop_central)
+        y = self.labels[idx]
         if self.transform:
             manip = 'manip' in self.images_names[idx]
-            x = self.transform(x, manip)
-        y = self.labels[idx]
+            x = self.transform(x, manip, y)
         return x, y
 
 
@@ -99,18 +97,18 @@ class TestDataset(data.Dataset):
 
 class InternValidDataset(data.Dataset):
     def __init__(self, transform=None):
-        df = pd.read_csv('../../validation/external_validation.csv', header=None)
+        df = pd.read_csv('../../validation/external_validation.csv')
         self.cached_limit = len(df)
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}
-        images_names = df[0].values
+        images_names = df['fname'].values
         images_names = np.array(list(map(lambda x: '../../validation/{}'.format(x), images_names)))
         self.images_names = images_names
         self.images = Parallel(n_jobs=8)(
             delayed(load_cached)(idx, x, self.cached_limit) for idx, x in tqdm(enumerate(images_names),
                                                                                total=len(images_names),
                                                                                desc='images loading'))
-        labels = df[1].values
+        labels = df['camera'].values
         self.labels = [categories_dict[cat] for cat in labels]
         self.transform = transform
         self.num_classes = len(categories)
@@ -121,7 +119,6 @@ class InternValidDataset(data.Dataset):
     def __getitem__(self, idx):
         x = self.images[idx] if idx < self.cached_limit else load(self.images[idx])
         if self.transform:
-            manip = 'manip' in self.images_names[idx]
-            x = self.transform(x, manip)
+            x = self.transform(x)
         y = self.labels[idx]
         return x, y
