@@ -12,6 +12,13 @@ def load_image(address, name):
         request.urlretrieve(address, save_path)
 
 
+def load_direct(camera_name, url):
+    basename = os.path.basename(url)
+    save_path = f'../../data/train/{camera_name}/{basename}'
+    if not os.path.exists(save_path):
+        request.urlretrieve(url, save_path)
+
+
 if __name__ == '__main__':
     models_dict = {
          'samsung_note3': 'Samsung-Galaxy-Note3', 
@@ -45,3 +52,7 @@ if __name__ == '__main__':
                     print('missed file: ', line)
                     missed += 1
         print('totally missed', missed)
+
+    for camera in models_dict.keys():
+        with open(f'../../extra_data/bes_external_data/{camera}/{camera}.csv', 'r') as f:
+            Parallel(n_jobs=4)(delayed(load_direct)(camera, line.strip()) for line in tqdm(f.readlines(), desc=camera))

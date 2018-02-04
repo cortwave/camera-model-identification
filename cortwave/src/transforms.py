@@ -27,7 +27,7 @@ def transform(img, manip, clazz):
         ops.append(o)
     # classes HTC-1-M7, Samsung-Galaxy-Note3, iPhone-6 can be rotated
     if clazz in [0, 5, 9]:
-        ops.append(RandomRotate([0, 90, 180, 270]))
+        ops.append(RandomRotate())
     for o in [RandomHFlip(), RandomVFlip(), transforms.ToTensor()]:
         ops.append(o)
     ops = transforms.Compose(ops)
@@ -160,12 +160,12 @@ class RandomVFlip:
 
 
 class RandomRotate:
-    def __init__(self, angles):
-        self.angles = angles
+    def __init__(self):
+        pass
 
     def __call__(self, img):
-        angle = np.random.choice(self.angles)
-        img = rotate(img, angle)
+        if np.random.random() < 0.5:
+            img = np.rot90(img)
         return img
 
 

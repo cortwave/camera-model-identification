@@ -78,7 +78,7 @@ def get_model(num_classes, architecture):
                 model.layer4,
                 nn.AdaptiveAvgPool2d(1)
             )
-            classifier = nn.Linear(model.fc.in_features + 1, num_classes).cuda()
+            classifier = nn.Linear(model.fc.in_features + 1, num_classes)
             model = ManipModel(features, classifier).cuda()
     elif "densenet" in architecture:
         if architecture == 'densenet121':
