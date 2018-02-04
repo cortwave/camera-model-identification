@@ -165,7 +165,7 @@ class RandomRotate:
 
     def __call__(self, img):
         if np.random.random() < 0.5:
-            img = np.rot90(img)
+            img = np.rot90(img).copy()
         return img
 
 
