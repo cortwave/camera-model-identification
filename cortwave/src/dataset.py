@@ -43,11 +43,11 @@ class Dataset(data.Dataset):
             folds.remove(n_fold)
             train_dfs = [pd.read_csv('../data/fold_{}.csv'.format(i), header=None) for i in folds]
             df = pd.concat(train_dfs)
-            self.size = len(df) * 5
+            self.size = len(df)
         else:
             valid_fold = pd.read_csv('../data/fold_{}.csv'.format(n_fold), header=None)
             df = valid_fold
-            self.size = len(df) * 5
+            self.size = len(df)
         self.cached_limit = int(len(df) * cached_part)
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}
