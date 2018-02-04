@@ -30,6 +30,12 @@ def make_crops(img, crop_size):
     return crops
 
 
+def dump(train, test, fold, model):
+    joblib.dump(train, f'result/features/train_{model}_{fold}.h5')
+    joblib.dump(test, f'result/features/test_{model}_{fold}.h5')
+    return [], []
+
+
 def main(model_name, shape):
     train = []
     test = []
@@ -37,7 +43,6 @@ def main(model_name, shape):
 
     load_model_ = partial(load_model, custom_objects={'relu6': relu6,
                                                       'DepthwiseConv2D': DepthwiseConv2D})
-
 
     for model_path in glob(f'result/models/{model_name}_*.h5'):
         model = load_model_(model_path)
@@ -63,17 +68,16 @@ def main(model_name, shape):
                     predictions = feature_extractor.predict(crops)
 
                     for pred in predictions:
-                        train.append((fname, fold, pred))
+                        train.append((fname.split('/')[-1], pred))
 
-        for fname, crops in tqdm(get_test_files(shape=shape), desc='predicting test'):
-            predictions = feature_extractor.predict(crops)
-            for pred in predictions:
-                test.append((fname, fold, pred))
+            for fname, crops in tqdm(get_test_files(shape=shape), desc='predicting test', total=2640):
+                predictions = feature_extractor.predict(crops)
+                for pred in predictions:
+                    test.append((fname.split('/')[-1], pred))
+
+            train, test = dump(train, test, fold, model_name)
 
         K.clear_session()
-
-    joblib.dump(train, 'result/train_features.h5')
-    joblib.dump(test, 'result/test_features.h5')
 
 
 if __name__ == '__main__':

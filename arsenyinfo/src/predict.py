@@ -56,9 +56,7 @@ def batch_aug(imgs, safe=True):
 
 
 def describe_model(m):
-    logger.info(f'File {m} created: {path.getctime(m)}')
-    logger.info(f'File {m} modified: {path.getmtime(m)}')
-    logger.info(f'File {m} accessed: {path.getatime(m)}')
+    logger.info(f'File {m} created: {pd.to_datetime(round(path.getctime(m)), unit="s")}')
     return m
 
 

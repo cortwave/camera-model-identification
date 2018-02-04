@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.aug import crop, center_crop
-from src.utils import logger
+from src.utils import logger, get_img_quality
 
 VOTING = 'data/voting.csv'
 EXCLUDED_PSEUDO_LABELS = 'result/weird.txt'
@@ -111,41 +111,13 @@ class KaggleDataset(Dataset):
         return acc, cat_names, cat_index
 
 
-class MixedDataset(Dataset):
+class ExtraDataset(Dataset):
     def get_data(self):
-        # main data
         categories = sorted(glob('/media/ssd/data/train/*'))
         cat_names = [x.split('/')[-1] for x in categories]
         cat_index = {k: i for i, k in enumerate(cat_names)}
 
         acc = defaultdict(list)
-        i = 0
-        for c in categories:
-            files = glob(c + '/*')
-            y_idx = cat_index[c.split('/')[-1]]
-
-            for f in files:
-                fold = i % 5
-                i += 1
-                acc[fold].append((f, y_idx))
-
-        logger.info(f'{i} samples come from the main train dataset')
-
-        # voting based pseudo labels
-        df = pd.read_csv(VOTING)
-        banned = self.exclude_bad_predictions()
-        df['is_banned'] = df['fname'].apply(lambda x: x in banned)
-        df = df[~df['is_banned']]
-        df = df[df.votes > 6].sort_values('best_model').reset_index()[['fname', 'best_model']]
-
-        for i, row in df.iterrows():
-            fold = i % 5
-            k = row['fname']
-            v = row['best_model']
-            f = join('data/test/', k)
-            y_idx = cat_index[v]
-            acc[fold].append((f, y_idx))
-        logger.info(f'{i} samples come from the pseudo labels dataset')
 
         # Vision dataset
         files = self.list_vision_files()
@@ -155,6 +127,10 @@ class MixedDataset(Dataset):
             y = self.parse_vision_class(f)
             if y is None:
                 continue
+
+            # if not get_img_quality(f) > 90:
+            #     continue
+
             y_idx = cat_index[y]
             fold = i % 5
             i += 1
@@ -173,13 +149,9 @@ class MixedDataset(Dataset):
             i += 1
             acc[fold].append((f, y_idx))
         logger.info(f'{i} samples come from the flickr dataset')
+
         return acc, cat_names, cat_index
 
-    @staticmethod
-    def exclude_bad_predictions():
-        with open(EXCLUDED_PSEUDO_LABELS) as lst:
-            fnames = [x[:-1] for x in lst.readlines()]
-        return set(fnames)
 
     @staticmethod
     def list_vision_files():
@@ -196,86 +168,60 @@ class MixedDataset(Dataset):
         return
 
 
-class PseudoOnlyDataset(Dataset):
-    @staticmethod
-    def get_data():
+class MixedDataset(Dataset):
+    def get_data(self):
+        # main data
         categories = sorted(glob('/media/ssd/data/train/*'))
         cat_names = [x.split('/')[-1] for x in categories]
         cat_index = {k: i for i, k in enumerate(cat_names)}
 
         acc = defaultdict(list)
 
-        df = pd.read_csv(BEST_PROBAS)
-        df = df[df.fname.str.contains('unalt')]
-        threshold = df[cat_names].values.max() * .999
-        fname = df.pop('fname')
-        labels = [(f, row.argmax()) for f, (i, row) in zip(fname, df.iterrows())
-                  if row.max() > threshold]
-        labels = sorted(labels, key=lambda x: x[1])
+        i = 0
+        for c in categories:
+            files = glob(c + '/*')
+            y_idx = cat_index[c.split('/')[-1]]
 
-        for i, (k, v) in enumerate(labels):
+            for f in files:
+                fold = i % 5
+                i += 1
+                acc[fold].append((f, y_idx))
+
+        logger.info(f'{i} samples come from the main train dataset')
+
+        # voting based pseudo labels
+        df = pd.read_csv(VOTING)
+        banned = self.exclude_bad_predictions()
+        df['is_banned'] = df['fname'].apply(lambda x: x in banned)
+        df = df[~df['is_banned']]
+        df = df[df.votes > 5].sort_values('best_camera').reset_index()[['fname', 'best_camera']]
+
+        for i, row in df.iterrows():
             fold = i % 5
+            k = row['fname']
+            v = row['best_camera']
             f = join('data/test/', k)
             y_idx = cat_index[v]
             acc[fold].append((f, y_idx))
+        logger.info(f'{i} samples come from the pseudo labels dataset')
 
         return acc, cat_names, cat_index
 
-
-class DresdenDataset(Dataset):
     @staticmethod
-    def parse_class(s):
-        return s.split('/')[-1][::-1].split('_', 2)[-1][::-1]
-
-    def get_data(self):
-        files = glob('data/dresden/*JPG')
-        cat_names = sorted(list(set([self.parse_class(x) for x in files])))
-        cat_index = {k: i for i, k in enumerate(cat_names)}
-
-        logger.info(f'DresdenDataset classes: {cat_names}; {len(files)} samples')
-
-        acc = defaultdict(list)
-        i = 0
-
-        for f in files:
-            y = self.parse_class(f)
-            y_idx = cat_index[y]
-
-            fold = i % 5
-            i += 1
-            acc[fold].append((f, y_idx))
-
-        return acc, cat_names, cat_index
+    def exclude_bad_predictions():
+        with open(EXCLUDED_PSEUDO_LABELS) as lst:
+            fnames = [x[:-1] for x in lst.readlines()]
+        return set(fnames)
 
 
-class VisionDataset(Dataset):
-    @staticmethod
-    def list_files():
-        return glob('data/vision/*/images/flat/*.jpg') + glob('data/vision/*/images/nat/*.jpg')
+class DatasetCollection:
+    def __init__(self, *datasets):
+        self.datasets = datasets
 
-    @staticmethod
-    def parse_class(s):
-        return s.split('/')[2]
+    def __next__(self):
+        dataset = np.random.choice(self.datasets)
+        return next(dataset)
 
-    def get_data(self):
-        files = self.list_files()
-        cat_names = sorted(list(set([self.parse_class(x) for x in files])))
-        cat_index = {k: i for i, k in enumerate(cat_names)}
-
-        logger.info(f'VisionDataset classes: {cat_names}; {len(files)} samples')
-
-        acc = defaultdict(list)
-        i = 0
-
-        for f in files:
-            y = self.parse_class(f)
-            y_idx = cat_index[y]
-
-            fold = i % 5
-            i += 1
-            acc[fold].append((f, y_idx))
-
-        return acc, cat_names, cat_index
 
 
 class SiameseWrapper:
@@ -301,15 +247,6 @@ class SiameseWrapper:
             y_batch[i] = 0 if np.all(np.equal(y_data[a], y_data[b])) else 1
 
         return [x1_batch, x2_batch], y_batch
-
-
-def get_dataset(dataset):
-    datasets = {'kaggle': (KaggleDataset, 10),
-                'pseudo_only': (PseudoOnlyDataset, 10),
-                'vision': (VisionDataset, 24),
-                'dresden': (DresdenDataset, 27),
-                'mixed': (MixedDataset, 10)}
-    return datasets[dataset]
 
 
 if __name__ == '__main__':

@@ -5,17 +5,15 @@ from keras.applications.resnet50 import ResNet50
 from keras.applications.mobilenet import MobileNet
 from keras.models import Model, load_model
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
-from keras.optimizers import Nadam
 from keras.layers import Dense, Dropout
 
 from src.utils import logger
-from src.wideresnet import create_wide_residual_network
 
 
-def get_callbacks(model_name, loss_name, dataset_name, fold):
+def get_callbacks(model_name, loss_name, stage, fold):
     es = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1, mode='auto')
     reducer = ReduceLROnPlateau(min_lr=1e-6, verbose=1, factor=0.1, patience=6)
-    checkpoint = ModelCheckpoint(f'result/models/{dataset_name}_{model_name}_{loss_name}_{fold}.h5',
+    checkpoint = ModelCheckpoint(f'result/models/{model_name}_{stage}_{loss_name}_{fold}.h5',
                                  monitor='val_loss',
                                  save_best_only=True, verbose=0)
     callbacks = [es, reducer, checkpoint]
@@ -53,12 +51,6 @@ def get_model(model_name, shape, n_classes):
     elif model_name == 'mobilenet':
         base_model = MobileNet(include_top=False, input_shape=(shape, shape, 3), pooling='avg')
         drop = .1
-    elif model_name == 'wideresnet':
-        model = create_wide_residual_network(input_shape=(shape, shape, 3),
-                                            nb_classes=n_classes, N=1, k=4,
-                                            )
-        model.compile(optimizer=Nadam(clipvalue=3, clipnorm=1), loss='categorical_crossentropy', metrics=['accuracy'])
-        return model, preprocess_input
     else:
         raise ValueError('Network name is unknown')
 
