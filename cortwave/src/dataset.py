@@ -43,11 +43,11 @@ class Dataset(data.Dataset):
             folds.remove(n_fold)
             train_dfs = [pd.read_csv('../data/fold_{}.csv'.format(i), header=None) for i in folds]
             df = pd.concat(train_dfs)
-            self.size = len(df) * 25
+            self.size = len(df) * 5
         else:
             valid_fold = pd.read_csv('../data/fold_{}.csv'.format(n_fold), header=None)
             df = valid_fold
-            self.size = len(df) * 25
+            self.size = len(df) * 5
         self.cached_limit = int(len(df) * cached_part)
         categories = sorted(os.listdir('../data/train'))
         categories_dict = {k: idx for idx, k in enumerate(categories)}
@@ -91,7 +91,8 @@ class TestDataset(data.Dataset):
         img_name = self.images[idx]
         img = load(img_name)
         if self.transform:
-            img = self.transform(img)
+            manip = 'manip' in img_name
+            img = self.transform(img, manip)
         return img, os.path.basename(img_name)
 
 
