@@ -56,3 +56,7 @@ if __name__ == '__main__':
     for camera in models_dict.values():
         with open(f'../../extra_data/bes_external_data/{camera}/{camera}.csv', 'r') as f:
             Parallel(n_jobs=4)(delayed(load_direct)(camera, line.strip()) for line in tqdm(f.readlines(), desc=camera))
+
+    for camera in models_dict.values():
+        with open(f'../../extra_data/new_bes_external_data/{camera}/{camera}.csv', 'r') as f:
+            Parallel(n_jobs=4)(delayed(load_direct)(camera, line.strip()) for line in tqdm(f.readlines(), desc=camera))
