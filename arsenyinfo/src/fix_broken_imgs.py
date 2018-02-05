@@ -13,13 +13,15 @@ def fix_and_check(x):
     with open(x, 'rb') as f:
         data = f.read()
         check_chars = data[-2:]
-        if check_chars == b'\xff\xd9':
-            return
-    with open(x, 'wb') as f:
-        f.write(data)
+        if not check_chars == b'\xff\xd9':
+            with open(x, 'wb') as f:
+                f.write(data)
 
     img = cv2.imread(x)
     if img is None or img[-5:, :, :].std() == 0:
+        remove(x)
+        return
+    if img.shape[0] < 1000 or img.shape[1] < 1000:
         remove(x)
         return
 
@@ -28,7 +30,7 @@ def fix_and_check(x):
         remove(x)
         return
 
-    if any(map(lambda x: x in soft, ('editor', 'adobe', 'aperture'))):
+    if any(map(lambda x: x in soft, ('editor', 'adobe', 'aperture', 'paint'))):
         remove(x)
         return
 
