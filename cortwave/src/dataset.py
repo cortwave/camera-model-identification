@@ -120,6 +120,7 @@ class InternValidDataset(data.Dataset):
     def __getitem__(self, idx):
         x = self.images[idx] if idx < self.cached_limit else load(self.images[idx])
         if self.transform:
-            x = self.transform(x)
+            manip = 'manip' in self.images_names[idx]
+            x = self.transform(x, manip, self.rot)
         y = self.labels[idx]
         return x, y

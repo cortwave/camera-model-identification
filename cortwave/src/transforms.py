@@ -42,7 +42,9 @@ def valid_augm():
     return transform
 
 
-def test_transform(img, manip):
+def test_transform(img, manip, rot=0):
+    for _ in range(rot):
+        img = np.rot90(img).copy()
     t = transforms.Compose([
         RandomCrop(size),
         RandomHFlip(),

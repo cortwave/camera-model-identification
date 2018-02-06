@@ -24,13 +24,26 @@ def main(architecture,
         labels = []
         with open('../results/{}/{}_valid_prob.csv'.format(architecture, fold), "w") as f:
             for idx in tqdm.tqdm(range(len(test_dataset))):
-                images = torch.stack([test_dataset[idx][0] for _ in range(tta)])
-                images = variable(images)
-                pred = model(images).data.cpu().numpy()
-                pred = np.array([softmax(x) for x in pred])
-                pred = np.sum(pred, axis=0) / len(pred)
+                best_conf = 0
+                best_pred = None
+                for rot in range(4):
+                    test_dataset.rot = rot
+                    in1 = []
+                    in2 = []
+                    for _ in range(tta):
+                        x = test_dataset[idx][0]
+                        in1.append(x[0])
+                        in2.append(x[1])
+                    in1 = variable(torch.stack(in1))
+                    in2 = variable(torch.stack(in2))
+                    pred = model(in1, in2).data.cpu().numpy()
+                    pred = np.array([softmax(x) for x in pred])
+                    pred = np.sum(pred, axis=0) / len(pred)
+                    if np.max(pred) > best_conf:
+                        best_conf = np.max(pred)
+                        best_pred = pred
                 labels.append(test_dataset[idx][1])
-                probas = ','.join([str(x) for x in pred])
+                probas = ','.join([str(x) for x in best_pred])
                 f.write('{}\n'.format(probas))
 
     dfs = [pd.read_csv('../results/{}/{}_valid_prob.csv'.format(architecture, i), header=None) for i in folds]
