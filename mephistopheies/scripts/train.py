@@ -380,6 +380,10 @@ if __name__ == '__main__':
         train_ds_list = [ds_train] + train_ds_list
         ds_train = MultiDataset(train_ds_list)
         log(' -> MultiDataset is created: %i' % len(train_ds_list))
+        
+        #for ds in train_ds_list:
+        #    print('; '.join(['%s: %i' % (k, v) for (k, v) in sorted(ds.class_to_idx.items(), key=lambda t: t[1])]))
+        #sys.exit('DEBUG EXIT')
     
     
     train_loader = torch.utils.data.DataLoader(    

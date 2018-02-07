@@ -1,25 +1,25 @@
 {
     "train_list_path": "/home/mephistopheies/storage2/data/camera-model-id/train_all.tsv",
-    "train_list_pseudo_npz": null,
+    "train_list_pseudo_npz": "/home/mephistopheies/storage2/data/camera-model-id/pseudo_labels/unalt/phase_1",
     "train_list_flickr": "/home/mephistopheies/storage2/data/camera-model-id/extra_data/train_flickr_top300.tsv",
     "__val_path": "/home/mephistopheies/storage2/data/camera-model-id/val/",
     "val_path": null,
     "out_dir": "/home/mephistopheies/storage2/data/camera-model-id/tmp_msi/",
         
-    "model_path": null,
+    "model_path": "/home/mephistopheies/storage2/data/camera-model-id/models/ResNetDenseFC34/256_pretrained_zfc_flickr_noval_nocenter/pseudo_phase_0/checkpoint.tar",
     
     "crop_center_size": 1520,
     "crop_size": 256,
     "step_crop_val": 128,
     "n_crops_train": 9,
     "n_crops_search_train": null,
-    "batch_size_train": 12,
+    "batch_size_train": 11,
     "batch_size_val": 15,  
     "workers": 4,  
     "n_epoches": 1000, 
         
     "n_classes": 10,
-    "model_type": "resnet34fc_pretrained",
+    "model_type": "ResNetDenseFC34_pretrained_zfc",
                 
     "optim_type": "sgd",
     "learning_rate": 0.1,
@@ -29,12 +29,9 @@
     "weight_decay": 0.0,
         
     "criterion_type": "CrossEntropyLoss",
-    "criterion_params": null,
-    "__criterion_params": {
-        "weight": [1.1821972599552848, 1.7357957866601166, 1.0510765456244873, 1.0, 1.1448731210386747, 1.1321519137470488, 1.0638173325685056, 1.3515811679449026, 2.6925824035672519, 1.0907536796837267]
-    },        
+    "criterion_params": null, 
     
-    "do_random_aug_kaggle": true,
+    "do_random_aug_kaggle": false,
     "p_random_aug_kaggle_train": 1.0,
     "p_random_aug_kaggle_val": 0.5,
     "do_hard_aug": false,
