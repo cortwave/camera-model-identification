@@ -238,13 +238,26 @@ class Model(object):
 
             with open('../results/{}/{}_{}_prob.csv'.format(architecture, name, fold), "w") as f:
                 for idx in tqdm.tqdm(range(len(test_dataset))):
-                    images = torch.stack([test_dataset[idx][0] for _ in range(tta)])
-                    images = variable(images)
-                    pred = model(images).data.cpu().numpy()
-                    pred = np.array([softmax(x) for x in pred])
-                    pred = np.sum(pred, axis=0) / len(pred)
-                    fname = test_dataset[idx][1]
-                    probas = ','.join([str(x) for x in pred])
+                    best_conf = 0
+                    best_pred = None
+                    for rot in range(4):
+                        test_dataset.rot = rot
+                        in1 = []
+                        in2 = []
+                        for _ in range(tta):
+                            x = test_dataset[idx][0]
+                            in1.append(x[0])
+                            in2.append(x[1])
+                        in1 = variable(torch.stack(in1))
+                        in2 = variable(torch.stack(in2))
+                        fname = test_dataset[idx][1]
+                        pred = model(in1, in2).data.cpu().numpy()
+                        pred = np.array([softmax(x) for x in pred])
+                        pred = np.sum(pred, axis=0) / len(pred)
+                        if np.max(pred) > best_conf:
+                            best_conf = np.max(pred)
+                            best_pred = pred
+                    probas = ','.join([str(x) for x in best_pred])
                     f.write('{},{}\n'.format(fname, probas))
 
 
