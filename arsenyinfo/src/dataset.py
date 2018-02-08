@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.aug import crop, center_crop
-from src.utils import logger, get_img_quality
+from src.utils import logger
 
 VOTING = 'data/voting.csv'
 EXCLUDED_PSEUDO_LABELS = 'result/weird.txt'
@@ -113,65 +113,7 @@ class KaggleDataset(Dataset):
 
 class ExtraDataset(Dataset):
     def get_data(self):
-        categories = sorted(glob('/media/ssd/data/train/*'))
-        cat_names = [x.split('/')[-1] for x in categories]
-        cat_index = {k: i for i, k in enumerate(cat_names)}
-
-        acc = defaultdict(list)
-
-        # Vision dataset
-        files = self.list_vision_files()
-
-        i = 0
-        for f in files:
-            y = self.parse_vision_class(f)
-            if y is None:
-                continue
-
-            # if not get_img_quality(f) > 90:
-            #     continue
-
-            y_idx = cat_index[y]
-            fold = i % 5
-            i += 1
-            acc[fold].append((f, y_idx))
-        logger.info(f'{i} samples come from the vision dataset')
-
-        # flickr dataset
-        df = pd.read_csv('data/flickr.csv')
-        i = 0
-        for _, row in df.iterrows():
-            f = row.get('fname')
-            y = row.get('camera')
-
-            y_idx = cat_index[y]
-            fold = i % 5
-            i += 1
-            acc[fold].append((f, y_idx))
-        logger.info(f'{i} samples come from the flickr dataset')
-
-        return acc, cat_names, cat_index
-
-
-    @staticmethod
-    def list_vision_files():
-        # return glob('data/vision/*/images/flat/*.jpg') + glob('data/vision/*/images/nat/*.jpg')
-        return glob('data/vision/*/images/nat/*.jpg')
-
-    @staticmethod
-    def parse_vision_class(s):
-        cls = s.split('/')[2][:3]
-        if cls in {'D02', 'D10'}:
-            return 'iPhone-4s'
-        if cls in {'D06', 'D15'}:
-            return 'iPhone-6'
-        return
-
-
-class MixedDataset(Dataset):
-    def get_data(self):
-        # main data
-        categories = sorted(glob('/media/ssd/data/train/*'))
+        categories = sorted(glob('/home/arseny/dev/camera_kaggle/arsenyinfo/data/train/*'))
         cat_names = [x.split('/')[-1] for x in categories]
         cat_index = {k: i for i, k in enumerate(cat_names)}
 
@@ -187,14 +129,25 @@ class MixedDataset(Dataset):
                 i += 1
                 acc[fold].append((f, y_idx))
 
-        logger.info(f'{i} samples come from the main train dataset')
+        logger.info(f'{i} samples come from the extra dataset')
+        return acc, cat_names, cat_index
+
+
+class PseudoDataset(Dataset):
+    def get_data(self):
+        # main data
+        categories = sorted(glob('/media/ssd/data/train/*'))
+        cat_names = [x.split('/')[-1] for x in categories]
+        cat_index = {k: i for i, k in enumerate(cat_names)}
+
+        acc = defaultdict(list)
 
         # voting based pseudo labels
         df = pd.read_csv(VOTING)
         banned = self.exclude_bad_predictions()
         df['is_banned'] = df['fname'].apply(lambda x: x in banned)
         df = df[~df['is_banned']]
-        df = df[df.votes > 5].sort_values('best_camera').reset_index()[['fname', 'best_camera']]
+        df = df[df.votes >= 5].sort_values('best_camera').reset_index()[['fname', 'best_camera']]
 
         for i, row in df.iterrows():
             fold = i % 5
@@ -214,14 +167,13 @@ class MixedDataset(Dataset):
         return set(fnames)
 
 
-class DatasetCollection:
+class DataCollection:
     def __init__(self, *datasets):
         self.datasets = datasets
 
     def __next__(self):
         dataset = np.random.choice(self.datasets)
         return next(dataset)
-
 
 
 class SiameseWrapper:

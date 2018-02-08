@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_img_attributes(fname):
+    # ToDo: this should be refactored to be faster
     s = subprocess.run([f'identify', '-verbose', f'{fname}'],
                        stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE,
@@ -24,7 +25,7 @@ def get_img_attributes(fname):
     try:
         soft = [x for x in s if 'Software' in x]
         if soft:
-            soft = soft[0].split(': ')[-1]
+            soft = soft[0].split(': ')[-1].lower()
         else:
             soft = ''
     except Exception:

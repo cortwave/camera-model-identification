@@ -3,7 +3,7 @@ from functools import partial
 from keras.optimizers import SGD
 from fire import Fire
 
-from src.dataset import MixedDataset, ExtraDataset, DatasetCollection
+from src.dataset import KaggleDataset, PseudoDataset, ExtraDataset, DataCollection
 from src.model import get_model, get_callbacks
 from src.aug import augment
 from src.utils import logger
@@ -14,7 +14,7 @@ def fit_once(model, model_name, loss, train, val, stage, n_fold, start_epoch, in
     steps_per_epoch = 500
     validation_steps = 100
 
-    model.compile(optimizer=SGD(lr=0.001 if initial else 0.01, clipvalue=4, momentum=.9, nesterov=True),
+    model.compile(optimizer=SGD(lr=0.01 if initial else 0.001, clipvalue=4, momentum=.9, nesterov=True),
                   loss=loss,
                   metrics=['accuracy'])
     history = model.fit_generator(train,
@@ -40,7 +40,7 @@ def fit_model(model_name, batch_size=16, n_fold=1, shape=384):
     model, preprocess = get_model(model_name, shape, n_classes=n_classes)
 
     def make_config(**kwargs):
-        d = {'n_fold': n_fold,
+        d = {'n_fold': int(n_fold),
              'transform': preprocess,
              'batch_size': batch_size,
              'train': True,
@@ -50,23 +50,24 @@ def fit_model(model_name, batch_size=16, n_fold=1, shape=384):
         d.update(kwargs)
         return d
 
-    train_mixed = MixedDataset(**make_config())
-    val_mixed = MixedDataset(**make_config(train=False))
-    train_mixed_crop = MixedDataset(**make_config(center_crop_size=1024))
-    val_mixed_crop = MixedDataset(**make_config(train=False, center_crop_size=1024))
+    kaggle_train = KaggleDataset(**make_config())
+    kaggle_val = KaggleDataset(**make_config(train=False))
 
-    train_extra = ExtraDataset(**make_config())
-    val_extra = ExtraDataset(**make_config(train=False))
+    pseudo_train = PseudoDataset(**make_config())
+    pseudo_val = PseudoDataset(**make_config(train=False))
+
+    extra_train = ExtraDataset(**make_config())
+    extra_val = ExtraDataset(**make_config(train=False))
 
     frozen_epochs = 1
     steps_per_epoch = 500
     validation_steps = 50
     loss = 'categorical_crossentropy'
     model.compile(optimizer='adam', loss=loss, metrics=['accuracy'])
-    model.fit_generator(DatasetCollection(train_mixed, train_extra),
+    model.fit_generator(DataCollection(kaggle_train, extra_train, pseudo_train),
                         epochs=frozen_epochs,
                         steps_per_epoch=steps_per_epoch,
-                        validation_data=DatasetCollection(val_mixed, val_extra),
+                        validation_data=DataCollection(kaggle_val, extra_val, pseudo_val),
                         workers=8,
                         validation_steps=validation_steps,
                         use_multiprocessing=False,
@@ -77,25 +78,15 @@ def fit_model(model_name, batch_size=16, n_fold=1, shape=384):
         layer.trainable = True
 
     epoch = frozen_epochs
-    for stage, (train, val) in enumerate((
-            (DatasetCollection(train_mixed, train_extra), DatasetCollection(val_mixed, val_extra)),
-            (DatasetCollection(train_mixed), DatasetCollection(val_mixed)),
-            (DatasetCollection(train_mixed_crop), DatasetCollection(val_mixed_crop)),
-    )):
+    for stage, (train, val) in enumerate(((DataCollection(kaggle_train, extra_train, pseudo_train),
+                                           DataCollection(kaggle_val, extra_val, pseudo_val)),
+                                          (DataCollection(kaggle_train, pseudo_train),
+                                           DataCollection(kaggle_val, pseudo_val)),
+                                          (DataCollection(pseudo_train), DataCollection(pseudo_val)),
+                                          )):
         model, epoch = fit_once(model=model,
                                 model_name=model_name,
                                 loss='categorical_crossentropy',
-                                train=train,
-                                val=val,
-                                start_epoch=epoch,
-                                stage=stage,
-                                n_fold=n_fold,
-                                initial=True if stage > 0 else False
-                                )
-
-        model, epoch = fit_once(model=model,
-                                model_name=model_name,
-                                loss='categorical_hinge',
                                 train=train,
                                 val=val,
                                 start_epoch=epoch,

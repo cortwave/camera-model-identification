@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 from src.utils import get_img_attributes
 
 
-def fix_and_check(x):
+def fix_thread_safe(x):
     with open(x, 'rb') as f:
         data = f.read()
         check_chars = data[-2:]
@@ -25,8 +25,14 @@ def fix_and_check(x):
         remove(x)
         return
 
-    q, soft = get_img_attributes(x)
-    if q < 90:
+
+def fix_thread_unsafe(x):
+    try:
+        q, soft = get_img_attributes(x)
+    except:
+        print('broken')
+        return
+    if q < 93:
         remove(x)
         return
 
@@ -37,7 +43,9 @@ def fix_and_check(x):
 
 def main(path):
     files = glob(path)
-    Parallel(n_jobs=-1)(delayed(fix_and_check)(x) for x in tqdm(files))
+    Parallel(n_jobs=-1)(delayed(fix_thread_safe)(x) for x in tqdm(files))
+    for x in tqdm(files):
+        fix_thread_unsafe(x)
 
 
 if __name__ == '__main__':

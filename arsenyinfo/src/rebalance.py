@@ -2,11 +2,10 @@ from glob import glob
 
 import numpy as np
 import pandas as pd
-
 from fire import Fire
 
-def main(model_name):
 
+def main(model_name):
     files = [pd.read_csv(x) for x in glob(f'result/probas_{model_name}*.csv')]
     df = pd.concat(files)
     df = df.groupby('fname').agg(np.sum).reset_index()

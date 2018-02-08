@@ -1,6 +1,8 @@
 from urllib import request
 import os
+from time import sleep
 from glob import glob
+from glog import logger
 
 from tqdm import tqdm
 from joblib import Parallel, delayed
@@ -8,6 +10,19 @@ from fire import Fire
 
 
 def load_image(address, folder_name):
+    i = 1
+    success = False
+    while not success:
+        try:
+            _load_image(address, folder_name)
+            success = True
+        except Exception:
+            logger.exception(f'{i} retries failed for {address}')
+            i += 1
+            sleep(i)
+
+
+def _load_image(address, folder_name):
     basename = os.path.basename(address)
     save_path = f'data/train/{folder_name}/{basename}'
     if not os.path.exists(save_path):

@@ -15,7 +15,7 @@ from glog import logger
 from src.aug import jpg_compress, gamma_correction
 
 
-def _crop(img, shape, option):
+def _crop5(img, shape, option):
     margin = 512 - shape
     half = int(margin / 2)
     crops = [lambda x: x[:-margin, :-margin, ...],
@@ -28,13 +28,24 @@ def _crop(img, shape, option):
     return crops[option](img)
 
 
+def _crop(img, shape, option):
+    steps = 3
+    margin = 512 - shape
+    step_size = int(margin / 3)
+
+    crops = [lambda x: x[i * step_size: i * step_size + shape, j * step_size: j * step_size + shape, :]
+             for i in range(steps) for j in range(steps)]
+
+    return crops[option](img)
+
+
 def get_test_files(shape):
     files = glob('data/test/*')
     for f in files:
         img = cv2.imread(f)
         name = f.split('/')[-1]
         safe = 'manip' in name
-        crops = batch_aug([_crop(img, shape, x) for x in range(5)], safe=safe)
+        crops = batch_aug([_crop(img, shape, x) for x in range(9)], safe=safe)
         crops = preprocess_input(crops.astype('float32'))
         yield name, crops
 
@@ -67,34 +78,17 @@ def predict(model_name, shape=384):
     load_model_ = partial(load_model, custom_objects={'relu6': relu6,
                                                       'DepthwiseConv2D': DepthwiseConv2D})
 
-    models = glob(f'result/models/{model_name}*.h5')
-    result = []
+    models = glob(f'result/models/2_{model_name}*.h5')
     models = [load_model_(model, compile=False) for model in map(describe_model, models)]
 
     probas = []
 
     for name, batch in tqdm(get_test_files(shape=shape), desc='predictions processed', total=len(glob('data/test/*'))):
         pred = np.array(reduce(lambda x, y: x + y, [model.predict(batch) for model in models])).sum(axis=0)
-        idx = pred.argmax()
-        result.append({'fname': name, 'camera': classes[idx]})
-
+        pred /= batch.shape[0]
         proba = {k: v for k, v in zip(classes, pred)}
         proba['fname'] = name
         probas.append(proba)
-
-    df = pd.DataFrame(result)
-
-    unalt = df.fname.apply(lambda x: 'unalt' in x)
-    manip = df.fname.apply(lambda x: 'manip' in x)
-
-    unalt_df = df.copy()
-    unalt_df['camera'][manip] = 'tmp'
-
-    manip_df = df.copy()
-    manip_df['camera'][unalt] = 'tmp'
-
-    unalt_df.to_csv('result/submit_only_unalt.csv', index=False)
-    manip_df.to_csv('result/submit_only_manip.csv', index=False)
 
     pd.DataFrame(probas).to_csv(f'result/probas_{model_name}.csv', index=False)
 

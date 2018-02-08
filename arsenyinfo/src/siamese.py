@@ -1,8 +1,6 @@
 from functools import partial
 
-from keras.applications.mobilenet import MobileNet, preprocess_input
-# from keras.applications.xception import Xception, preprocess_input
-
+from keras.applications.mobilenet import preprocess_input
 from keras.models import Model
 from keras.layers import Input, Lambda, Dense, Conv2D, BatchNormalization, GlobalAveragePooling2D, Dropout
 from keras import backend as K
@@ -96,7 +94,7 @@ def main(n_fold=0, batch_size=64):
                         max_queue_size=32,
                         use_multiprocessing=False,
                         validation_steps=10,
-                        callbacks=get_callbacks('siamese', loss_name='euclidian', dataset_name='pseudo', fold=n_fold),
+                        callbacks=get_callbacks('siamese', loss_name='euclidian', stage='pseudo', fold=n_fold),
                         )
 
 
